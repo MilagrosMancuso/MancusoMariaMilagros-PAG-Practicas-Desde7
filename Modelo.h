@@ -7,74 +7,71 @@
 #ifndef PRACTICA1PAG_MODELO_H
 #define PRACTICA1PAG_MODELO_H
 
-#include <glad/glad.h>
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <string>
 #include <vector>
-#include <memory>
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
+
+#include "Malla.h"
+#include "Material.h"
+
 
 namespace PAG{
 
     class Modelo{
     private:
 
-        struct Vertex {
-            float px, py, pz; //pos
-            float nx, ny, nz; //normal
-        };
+        std::vector<Malla> mallas;
+        glm::mat4 modelo {1.0};
+        bool wireframe = false;
+
+        std::string _ruta;
+        std::string _nombre;
+
+        // Procesa una malla de Assimp y devuelve una Malla lista para la GPU
+        Malla procesaMalla(const aiMesh* m);
+
+        Material material;
+
+    public:
+        Modelo() = default;
+        ~Modelo() = default;
 
         Modelo(const Modelo&) = delete;
         Modelo& operator=(const Modelo&) = delete;
-        Modelo(Modelo&&) noexcept;
-        Modelo& operator=(Modelo&&) noexcept;
 
-        GLuint _vao = 0;
-        GLuint _vbo = 0;
-        GLuint _ibo = 0;
-        GLsizei _indexCount = 0;
+        Modelo(Modelo&&) noexcept = default;
+        Modelo& operator=(Modelo&&) noexcept = default;
 
-        glm::mat4 _model{1.0f};
+        /**
+        * Carga un archivo OBJ
+        */
+        void loadOBJ(const std::string& path, bool smoothNormals);
 
-        void releaseGL();
-        static void gatherMesh(const aiMesh* m,
-                               std::vector<Vertex>& outVerts,
-                               std::vector<unsigned>& outIdx,
-                               unsigned baseVertex);
+        /**
+         * Dibujar este modelo (todas sus mallas)
+         */
+        void dibuja() const;
 
-    public:
-            Modelo();
-            ~Modelo();
+        // Matriz de modelado
+        glm::mat4& modelaMatrix() { return modelo; }
+        const glm::mat4& modelaMatrix() const { return modelo; }
 
+        size_t cuentaTriang() const;
 
-            // Construcción desde datos ya cargados (interno)
-            void buildGPU(const std::vector<Vertex>& verts,
-                          const std::vector<unsigned>& indices);
+        // para el archivo
+        const std::string& nombre() const { return _nombre; }
+        const std::string& ruta()   const { return _ruta;   }
+        void setNombre(const std::string& n) { _nombre = n; }
+        void setRuta(const std::string& r)   { _ruta = r;   }
 
-            // Carga un OBJ desde path con Assimp y genera VBO/IBO/VAO
-            void loadOBJ(const std::string& path,
-                         bool smoothNormals = true); // aiProcess_GenSmoothNormals vs GenNormals
+        bool getWireframe() const { return wireframe; }
+        void setWireframe(bool w) { wireframe = w; }
 
-            // Dibujo, activa VAO y  glDrawElements
-            void dibuja() const;
-
-            // Transforma/ de modelado
-            glm::mat4& modelaMatrix() { return _model; }
-            const glm::mat4& modelaMatrix() const { return _model; }
-
-            void setTranslation(const glm::vec3& t);
-            void translate(const glm::vec3& dt);
-
-            // para los archivos
-            std::string nombre;   //archivo base
-            std::string ruta;
-
-            bool wireframe = false;
-
-            size_t cuentaTriang() const { return _indexCount / 3; } //para contar cuantos triangulos
+        Material& getMaterial() { return material; }
+        const Material& getMaterial() const { return material; }
 
 
     };

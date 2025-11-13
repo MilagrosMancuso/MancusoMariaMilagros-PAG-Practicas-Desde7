@@ -157,10 +157,23 @@ namespace PAG {
                     }
 
                     if (ImGui::Checkbox("Wireframe", &wire)) {
-                        m->wireframe = wire;
+                        m->setWireframe(wire);
+
                     }
 
                     ImGui::Text("Tris: %zu", m->cuentaTriang());
+
+
+                    //MATERIALES
+                    ImGui::Separator();
+                    ImGui::Text("Material");
+
+                    auto& mat = m->getMaterial();
+                    ImGui::ColorEdit3("Ka (Ambiente)", (float*)&mat.Ka);
+                    ImGui::ColorEdit3("Kd (Difuso)",   (float*)&mat.Kd);
+                    ImGui::ColorEdit3("Ks (Especular)",(float*)&mat.Ks);
+                    ImGui::SliderFloat("brillo", &mat.brillo, 1.0f, 128.0f);
+
                 }
 
 

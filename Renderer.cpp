@@ -243,8 +243,10 @@ namespace PAG {
         shaderProg = nuevo;
         idSP = nuevoID;
 
-        // localizar uniforms
+        // localizar uniforms y subrutinas
         fetchUniforms();
+        fetchSubroutines();
+
 
         addMensaje("Programa shader: " + baseName + " (program=" + std::to_string(idSP) + ")");
     }
@@ -283,6 +285,39 @@ namespace PAG {
         if (uProjLoc < 0) addMensaje("Aviso: uProj no encontrado");
     }
 
+    void Renderer::fetchSubroutines() {
+        // Localizar el uniform de subrutinas
+        locSubroutine = glGetSubroutineUniformLocation(
+                idSP,
+                GL_FRAGMENT_SHADER,
+                "uMetodoColor"
+        );
+
+        if (locSubroutine < 0)
+            addMensaje("ADVERTENCIA: No se encontró uMetodoColor.");
+
+        // Subrutina modo alambre
+        idxModoAlambre = glGetSubroutineIndex(
+                idSP,
+                GL_FRAGMENT_SHADER,
+                "modoAlambre"
+        );
+
+        if (idxModoAlambre == GL_INVALID_INDEX)
+            addMensaje("ERROR: No se encontró subrutina modoAlambre.");
+
+        // Subrutina modo sólido
+        idxModoSolido = glGetSubroutineIndex(
+                idSP,
+                GL_FRAGMENT_SHADER,
+                "modoSolido"
+        );
+
+        if (idxModoSolido == GL_INVALID_INDEX)
+            addMensaje("ERROR: No se encontró subrutina modoSolido.");
+    }
+
+
 
     void Renderer::setMatrices(const glm::mat4 &view, const glm::mat4 &proj) {
         if (idSP == 0) return;
@@ -294,7 +329,6 @@ namespace PAG {
 
 
 //CARGA DE MODELOS:
-
     int Renderer::loadOBJModel(const std::string &path, bool smoothNormals) {
         try {
             auto m = std::make_unique<Modelo>();
@@ -315,15 +349,16 @@ namespace PAG {
         if (_modeloSelec >= (int) _modelos.size()) _modeloSelec = (int) _modelos.size() - 1;
     }
 
-
     std::vector<std::string> Renderer::listaNombreModelo() const {
         std::vector<std::string> names;
         names.reserve(_modelos.size());
-        for (auto &m: _modelos) {
-            names.push_back(m ? m->nombre : std::string("Model"));
+
+        for (const auto& m : _modelos) {
+            names.push_back(m ? m->nombre() : std::string("Modelo"));
         }
         return names;
     }
+
 
     Modelo *Renderer::getModelo(int idx) {
         if (idx < 0 || idx >= (int) _modelos.size()) return nullptr;
@@ -333,21 +368,44 @@ namespace PAG {
     void Renderer::dibujaModelos() {
         if (idSP == 0) return;
 
-        // Enviar view/proj actuales desde la cámara
-        const auto &view = cam.matrizVision();
-        const auto &proj = cam.matrizProyeccion();
-
         glUseProgram(idSP);
+
+        const auto& view = cam.matrizVision();
+        const auto& proj = cam.matrizProyeccion();
+
         if (uViewLoc >= 0) glUniformMatrix4fv(uViewLoc, 1, GL_FALSE, glm::value_ptr(view));
         if (uProjLoc >= 0) glUniformMatrix4fv(uProjLoc, 1, GL_FALSE, glm::value_ptr(proj));
 
-        for (auto &m: _modelos) {
+        for (auto& m : _modelos) {
             if (!m) continue;
-            if (uModelLoc >= 0) {
-                glUniformMatrix4fv(uModelLoc, 1, GL_FALSE, glm::value_ptr(m->modelaMatrix()));
-            }
+
+            // MATRIZ DE MODELADO
+            glUniformMatrix4fv(
+                    uModelLoc,
+                    1,
+                    GL_FALSE,
+                    glm::value_ptr(m->modelaMatrix())
+            );
+
+
+            // PASO MATERIAL AL SHADER
+            const Material& mat = m->getMaterial();
+            glUniform3fv(glGetUniformLocation(idSP, "uKa"), 1, &mat.Ka[0]);
+            glUniform3fv(glGetUniformLocation(idSP, "uKd"), 1, &mat.Kd[0]);
+            glUniform3fv(glGetUniformLocation(idSP, "uKs"), 1, &mat.Ks[0]);
+            glUniform1f (glGetUniformLocation(idSP, "uShininess"), mat.brillo);
+
+
+            // ACTIVAR SUBRUTINA (modo)
+            GLuint modo = m->getWireframe()
+                          ? idxModoAlambre
+                          : idxModoSolido;
+
+            glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &modo);
+
+            // DIBUJAR EL MODELO
             m->dibuja();
         }
-
     }
+
 }

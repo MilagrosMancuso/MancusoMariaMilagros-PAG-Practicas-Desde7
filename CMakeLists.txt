@@ -18,6 +18,9 @@ add_executable( ${PROJECT_NAME} ${MY_FILES}
         Camara.cpp
         Modelo.h
         Modelo.cpp
+        Malla.cpp
+        Malla.h
+        Material.h
 )
 
 # Indica directorios (adicionales a los por defecto) para buscar includes

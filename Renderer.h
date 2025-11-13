@@ -53,6 +53,9 @@ namespace PAG {
 
         int _modeloSelec = -1; // seleccionado en GUI
 
+        GLuint idxModoAlambre = 0;
+        GLuint idxModoSolido  = 0;
+        GLint locSubroutine   = -1;
 
     public:
         static Renderer& getInstancia();
@@ -110,6 +113,7 @@ namespace PAG {
         // enviar uModel (por modelo) y dibujar todos
         void dibujaModelos();
 
+        void fetchSubroutines();
     };
 }
 
