@@ -242,3 +242,83 @@ void Camara::options(float dx, float dy);
    - Crane: subir / bajar.
 4. Usar el ratón o los botones de GUI para mover la cámara.
 5. Observar los cambios de vista sobre el modelo.
+
+
+# Práctica 7 — Subrutinas GLSL y Materiales 
+
+## Objetivo de la práctica
+
+En esta práctica se amplía el motor gráfico desarrollado, incorporando:
+
+- **Gestión de materiales por modelo** (Ka, Kd, Ks y shininess).
+- **Visualización en modo sólido o alambre**, seleccionable desde la interfaz.
+- **Uso de subrutinas GLSL** en el fragment shader para elegir dinámicamente cómo se genera el color final del fragmento.
+- **Controles en ImGui** para modificar el material en tiempo real.
+- Estructura interna actualizada del proyecto (**Modelos → Mallas**)
+
+---
+
+## Decisiones de diseño
+
+### 1. Modelo compuesto por múltiples mallas
+En lugar de mezclar todas las mallas del OBJ en un solo VAO/VBO, ahora cada modelo se compone de una lista de **Malla**, cada una con:
+
+- VAO propio
+- VBO propio
+- IBO propio
+- Su geometría independiente
+
+Esto:
+
+- Simplifica extensiones futuras (materiales, texturas, iluminación)
+- Respeta la estructura que proporciona Assimp
+- Evita mezclar diferentes sub-mallas en un único buffer
+
+### 2. Material por modelo
+Cada `Modelo` contiene ahora un objeto `Material`, con las propiedades:
+
+```cpp
+glm::vec3 Ka; // ambiente
+glm::vec3 Kd; // difuso
+glm::vec3 Ks; // especular
+float brillo;
+```
+
+### 3. Subrutinas GLSL
+En el fragment shader se define un tipo de subrutina:
+
+subroutine vec4 fModoColor();
+
+Y dos implementaciones:
+
+- modoAlambre()
+
+- modoSolido()
+
+Dependiendo del checkbox en ImGui (“Wireframe”), se selecciona dinámicamente una u otra usando:
+
+glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &modoElegido);
+
+### 4. Interfaz gráfica (ImGui)
+Se añade una nueva sección “Material” con:
+
+- Editores de color para Ka, Kd, Ks
+
+- Slider para shininess
+
+- Checkbox para activar el modo wireframe
+
+---
+## Funcionamiento del modo de visualización
+
+Wireframe OFF
+→ Subrutina activa: modoSolido()
+
+Wireframe ON
+→ Subrutina activa: modoAlambre()
+→ Además OpenGL activa glPolygonMode(GL_LINE)
+
+---
+## UML Actual: 
+
+![Diagrama UML](./umlPAG8.png)
