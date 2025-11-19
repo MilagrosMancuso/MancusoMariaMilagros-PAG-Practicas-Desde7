@@ -66,13 +66,13 @@ void Malla::construir(const std::vector<Vertice>& vertices,
                  indices.data(),
                  GL_STATIC_DRAW);
 
-    // Atributo 0 → posición
+    // Atributo 0  posición
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
                           sizeof(Vertice),
                           (void*)offsetof(Vertice, pos));
     glEnableVertexAttribArray(0);
 
-    // Atributo 1 → normal
+    // Atributo 1  normal
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
                           sizeof(Vertice),
                           (void*)offsetof(Vertice, normal));
