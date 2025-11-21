@@ -10,6 +10,7 @@
 
 #include <memory>
 #include "Modelo.h"
+#include "Light.h"
 
 #ifndef PRACTICA1PAG_RENDERER_H
 #define PRACTICA1PAG_RENDERER_H
@@ -25,7 +26,7 @@ namespace PAG {
 
         ShaderProgram* shaderProg = nullptr;
 
-        //@todo duplicado ojo aocmodar
+
         GLuint idSP = 0; // Identificador del shader program
         GLuint idVAO = 0; // Identificador del vertex array object
         GLuint idVBO = 0; // Identificador del vertex buffer object
@@ -44,14 +45,14 @@ namespace PAG {
 
         // función auxiliar para leer shaders desde archivo
         std::string loadShader(const std::string& filename);
-
-        // función auxiliar para comprobar errores
         void checkCompilaError(GLuint shader, std::string type);
 
-        // para gestionar los modelos
+        // Modelos
         std::vector<std::unique_ptr<Modelo>> _modelos;
-
         int _modeloSelec = -1; // seleccionado en GUI
+
+        // Luces
+        std::vector<Light> _luces;
 
         GLuint idxModoAlambre = 0;
         GLuint idxModoSolido  = 0;
@@ -89,8 +90,7 @@ namespace PAG {
 
         Camara& getCamara() { return cam; }
 
-        // [NUEVO] Gestión de modelos (API sencilla para GUI)
-
+        // Gestión de modelos
         int loadOBJModel(const std::string& path, bool smoothNormals = true); // devuelve índice
         void removeModel(int index);
 
@@ -110,8 +110,18 @@ namespace PAG {
                 return (int)_modelos.size();
         }
 
+        // Gestion de las luces
+        std::vector<Light>& getLuces()             { return _luces; }
+        const std::vector<Light>& getLuces() const { return _luces; }
+
+        // Crea una luz con una estrategia concreta. Devuelve índice.
+        int addLuz(std::unique_ptr<LightApplicator> strat);
+
+        // Elimina una luz por índice
+        void removeLuz(int index);
+
         // enviar uModel (por modelo) y dibujar todos
-        void dibujaModelos();
+        void dibujaModelos(const glm::mat4& view, const glm::mat4& proj);
 
         void fetchSubroutines();
     };

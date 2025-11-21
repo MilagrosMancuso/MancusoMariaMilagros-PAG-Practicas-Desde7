@@ -11,7 +11,7 @@ namespace PAG {
     private:
         static GUI* instancia;
         GUI();
-        char _baseName[128] = "pag06";     // nombre base para los shaders
+        char _baseName[128] = "pag08";     // nombre base para los shaders
         bool _autoLog = true;
 
         // para probar ColorFondo

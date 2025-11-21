@@ -72,20 +72,20 @@ namespace PAG {
         glEnable(GL_DEPTH_TEST);
     }
 
-    void Renderer::refrescar() {
+   /* void Renderer::refrescar() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        /*  //el triangulo
+          //el triangulo
            if (idSP == 0 || idVAO == 0 || idIBO == 0) return;
            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
            glUseProgram(idSP);
            glBindVertexArray(idVAO); //vinculamos el vao en la funcionalidad de refrescar
            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, idIBO);
            glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
-   */
+
         dibujaModelos();
 
-    }
+    }*/
 
     void Renderer::redimencionar(int ancho, int alto) {
         glViewport(0, 0, ancho, alto);
@@ -197,7 +197,12 @@ namespace PAG {
     void PAG::Renderer::inicializaOpenGL() {
         glClearColor(_colorBorrado[0], _colorBorrado[1], _colorBorrado[2], _colorBorrado[3]);
         glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LEQUAL);      // para multipasada con blending
+
         glEnable(GL_MULTISAMPLE);
+
+        glEnable(GL_BLEND);          // activamos blending globalmente
+        glBlendEquation(GL_FUNC_ADD);
     }
 
 
@@ -214,8 +219,8 @@ namespace PAG {
     }
 
     void Renderer::creaShaderProgram() {
-        // por compatibilidad cargamos el shader por defecto "pag05"
-        loadShaderProgramFromBase("pag05");
+        // por compatibilidad cargamos el shader por defecto "pag08"
+        loadShaderProgramFromBase("pag08");
     }
 
 
@@ -225,7 +230,8 @@ namespace PAG {
         std::vector<std::string> msgs;
         GLuint nuevoID = nuevo->loadFromBaseName(baseName, msgs);
 
-        for (const auto &m: msgs) addMensaje(m);
+        for (const auto &m: msgs)
+            addMensaje(m);
 
         // Si falla, no tocamos el programa actual
         if (nuevoID == 0) {
@@ -277,9 +283,12 @@ namespace PAG {
 
 
     void Renderer::fetchUniforms() {
+        if (idSP == 0) return;
+
         uModelLoc = glGetUniformLocation(idSP, "uModel");
         uViewLoc = glGetUniformLocation(idSP, "uView");
         uProjLoc = glGetUniformLocation(idSP, "uProj");
+
         if (uModelLoc < 0) addMensaje("Aviso: uModel no encontrado");
         if (uViewLoc < 0) addMensaje("Aviso: uView no encontrado");
         if (uProjLoc < 0) addMensaje("Aviso: uProj no encontrado");
@@ -365,13 +374,11 @@ namespace PAG {
         return _modelos[idx].get();
     }
 
-    void Renderer::dibujaModelos() {
+    void Renderer::dibujaModelos(const glm::mat4& view, const glm::mat4& proj) {
         if (idSP == 0) return;
 
         glUseProgram(idSP);
 
-        const auto& view = cam.matrizVision();
-        const auto& proj = cam.matrizProyeccion();
 
         if (uViewLoc >= 0) glUniformMatrix4fv(uViewLoc, 1, GL_FALSE, glm::value_ptr(view));
         if (uProjLoc >= 0) glUniformMatrix4fv(uProjLoc, 1, GL_FALSE, glm::value_ptr(proj));
@@ -409,5 +416,70 @@ namespace PAG {
             m->dibuja();
         }
     }
-//
+
+
+    //LUCES
+    int Renderer::addLuz(std::unique_ptr<PAG::LightApplicator> strat) {
+        _luces.emplace_back(std::move(strat));
+        return static_cast<int>(_luces.size()) - 1;
+    }
+
+    void Renderer::removeLuz(int index) {
+        if (index < 0 || index >= static_cast<int>(_luces.size())) return;
+        _luces.erase(_luces.begin() + index);
+    }
+
+    void Renderer::refrescar() {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        if (idSP == 0) return;
+
+        // Matrices de camara
+        const glm::mat4 view = cam.matrizVision();
+        const glm::mat4 proj = cam.matrizProyeccion();
+
+        glUseProgram(idSP);
+
+        // Si NO hay luces definidas, dibujamos como antes (de una sola pasada)
+        if (_luces.empty()) {
+            glm::vec3 defaultLightPos(2.0f, 3.0f, 2.0f);
+            GLint loc = glGetUniformLocation(idSP, "uLightPos");
+            if (loc >= 0)
+                glUniform3fv(loc, 1, glm::value_ptr(defaultLightPos));
+//@todo mirar bien
+            //glDisable(GL_BLEND);  // sin blending si solo hay una pasada
+            dibujaModelos(view, proj);
+
+            glUseProgram(0);
+            return;
+        }
+
+        // Hay luces hacemos multipasada
+        glEnable(GL_BLEND);
+        glBlendEquation(GL_FUNC_ADD);
+        glDepthFunc(GL_LEQUAL);
+
+        bool primera = true;
+
+        for (const auto& luz : _luces) {
+            if (!luz.props.activa) continue;
+
+            // Función de mezcla según si es la primera luz o una adicional
+            if (primera) {
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                primera = false;
+            } else {
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+            }
+
+            // La estrategia de la luz selecciona la subrutina y pasa uniforms específicos
+            luz.aplica(idSP, view);
+
+            // Dibujamos los modelos con esa luz activa
+            dibujaModelos(view, proj);
+        }
+
+        glUseProgram(0);
+
+    }
 }

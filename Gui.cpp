@@ -5,6 +5,13 @@
 #include "imgui/imgui.h"
 #include "Camara.h"
 #include <filesystem>
+#include <cstring>
+
+//meto las estrategias de luz
+#include "AmbientLightApplicator.h"
+#include "PointLightApplicator.h"
+#include "DirectionalLightApplicator.h"
+#include "SpotLightApplicator.h"
 
 namespace PAG {
     GUI* GUI::instancia = nullptr;
@@ -14,6 +21,8 @@ namespace PAG {
    */
     GUI::GUI(){
         // Color inicial alineado con Renderer (gris medio)
+        auto& renderer = Renderer::getInstancia();
+        const float* c = renderer.getColorFondo();
         _bgColor[0] = 0.6f;
         _bgColor[1] = 0.6f;
         _bgColor[2] = 0.6f;
@@ -38,6 +47,7 @@ namespace PAG {
         auto& renderer = Renderer::getInstancia();
         auto& cam = renderer.getCamara();
 
+        ///VENTANA SHADERS
         ImGui::Begin("Shaders");
 
         // Campo de texto: usa std::string* + imgui_stdlib.h para evitar error
@@ -61,7 +71,7 @@ namespace PAG {
 
         ImGui::End();
 
-        //Ventana para los modelos
+        ///VENTANA MODELOS
 
         if (ImGui::Begin("Modelos", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             static char ruta[512] = "";
@@ -164,7 +174,7 @@ namespace PAG {
                     ImGui::Text("Tris: %zu", m->cuentaTriang());
 
 
-                    //MATERIALES
+                    ///MATERIALES
                     ImGui::Separator();
                     ImGui::Text("Material");
 
@@ -183,7 +193,8 @@ namespace PAG {
         }
         ImGui::End();
 
-        //ventana camara
+        ///VENTANA DE CAMARA
+
         if (ImGui::Begin("Camara", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::SetWindowFontScale(1.0f); // Cambia a 2.0f para letra doble si quieres
 
@@ -294,7 +305,7 @@ namespace PAG {
         ImGui::End();
 
 
-        //Ventana Log
+        /// VENTANA LOG
             ImGui::Begin("Log");
         ImGui::Checkbox("Auto-scroll", &_autoLog);
         ImGui::Separator();
@@ -310,5 +321,132 @@ namespace PAG {
 
         ImGui::EndChild();
         ImGui::End();
+
+        /// VENTANA LUCES
+
+        if (ImGui::Begin("Luces", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            auto& luces = renderer.getLuces();
+
+            // Botones para añadir luces de diferentes tipos
+            if (ImGui::Button("Añadir Luz Ambiente")) {
+                Light l(std::make_unique<AmbientLightApplicator>());
+                l.props.Ia = glm::vec3(0.2, 0.2, 0.2);
+                luces.push_back(std::move(l));
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Añadir Luz Puntual")) {
+                Light l(std::make_unique<PointLightApplicator>());
+                l.props.posicion = glm::vec3(2.0, 2.0, 2.0);
+                luces.push_back(std::move(l));
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Añadir Luz Direccional")) {
+                Light l(std::make_unique<DirectionalLightApplicator>());
+                l.props.direccion = glm::normalize(glm::vec3(-1.0, -1.0, -1.0));
+                luces.push_back(std::move(l));
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Añadir Foco")) {
+                Light l(std::make_unique<SpotLightApplicator>());
+                l.props.posicion       = glm::vec3(0.0, 3.0, 3.0);
+                l.props.direccion      = glm::normalize(glm::vec3(0.0, -1.0, -1.0));
+                l.props.aperturaGrados = 25.0;
+                l.props.spotExp        = 10.0;
+                luces.push_back(std::move(l));
+            }
+
+            ImGui::Separator();
+
+            if (!luces.empty()) {
+                static int luzSel = 0;
+                if (luzSel < 0 || luzSel >= (int)luces.size())
+                    luzSel = 0;
+
+                // seleccionar luz
+                std::string labelActual = "Luz " + std::to_string(luzSel) +
+                                          " (" + luces[luzSel].nombreEstrategia() + ")";
+
+                if (ImGui::BeginCombo("Luz seleccionada", labelActual.c_str())) {
+                    for (int i = 0; i < (int)luces.size(); ++i) {
+                        bool isSel = (i == luzSel);
+                        std::string name = "Luz " + std::to_string(i) +
+                                           " (" + luces[i].nombreEstrategia() + ")";
+                        if (ImGui::Selectable(name.c_str(), isSel)) {
+                            luzSel = i;
+                        }
+                        if (isSel) ImGui::SetItemDefaultFocus();
+                    }
+                    ImGui::EndCombo();
+                }
+
+                Light& L = luces[luzSel];
+
+                // Boton para eliminar
+                if (ImGui::Button("Eliminar luz")) {
+                    luces.erase(luces.begin() + luzSel);
+                    if (luzSel >= (int)luces.size())
+                        luzSel = (int)luces.size() - 1;
+                    ImGui::End(); // salir antes de usar L si ya no existe
+
+                    goto SkipLightsWindowEnd;
+                }
+
+                ImGui::Separator();
+
+                // Tipo actual de estrategia - índice
+                const char* tipos[] = {"Ambiente", "Puntual", "Direccional", "Foco"};
+                int tipoIndex = 0;
+                const char* nombreStrat = L.nombreEstrategia();
+                if      (std::strcmp(nombreStrat, "Ambiente")    == 0) tipoIndex = 0;
+                else if (std::strcmp(nombreStrat, "Puntual")     == 0) tipoIndex = 1;
+                else if (std::strcmp(nombreStrat, "Direccional") == 0) tipoIndex = 2;
+                else if (std::strcmp(nombreStrat, "Foco")        == 0) tipoIndex = 3;
+
+                ImGui::Text("Tipo:");
+                ImGui::SameLine();
+                if (ImGui::Combo("##TipoLuz", &tipoIndex, tipos, IM_ARRAYSIZE(tipos))) {
+                    // Cambiar estrategia sin perder props
+                    switch (tipoIndex) {
+                        case 0: L.setEstrategia(std::make_unique<AmbientLightApplicator>());    break;
+                        case 1: L.setEstrategia(std::make_unique<PointLightApplicator>());      break;
+                        case 2: L.setEstrategia(std::make_unique<DirectionalLightApplicator>());break;
+                        case 3: L.setEstrategia(std::make_unique<SpotLightApplicator>());       break;
+                    }
+                }
+
+                ImGui::Checkbox("Activa", &L.props.activa);
+
+                // Colores
+                ImGui::Separator();
+                ImGui::Text("Colores");
+                ImGui::ColorEdit3("Ia (Ambiente)", (float*)&L.props.Ia);
+                ImGui::ColorEdit3("Id (Difuso)",   (float*)&L.props.Id);
+                ImGui::ColorEdit3("Is (Especular)",(float*)&L.props.Is);
+
+                // Posición y dirección según tipo
+                if (tipoIndex == 1 || tipoIndex == 3) {
+                    ImGui::Separator();
+                    ImGui::Text("Posición (mundo)");
+                    ImGui::DragFloat3("Pos", (float*)&L.props.posicion, 0.1f);
+                }
+
+                if (tipoIndex == 2 || tipoIndex == 3) {
+                    ImGui::Separator();
+                    ImGui::Text("Dirección (mundo)");
+                    ImGui::DragFloat3("Dir", (float*)&L.props.direccion, 0.01f);
+                }
+
+                if (tipoIndex == 3) {
+                    ImGui::Separator();
+                    ImGui::SliderFloat("Apertura (grados)", &L.props.aperturaGrados, 1.0f, 90.0f);
+                    ImGui::SliderFloat("Spot exp",          &L.props.spotExp,        1.0f, 64.0f);
+                }
+            } else {
+                ImGui::TextUnformatted("No hay luces. Añade alguna con los botones.");
+            }
+
+            SkipLightsWindowEnd:
+            ImGui::End();
+        }
     }
 }

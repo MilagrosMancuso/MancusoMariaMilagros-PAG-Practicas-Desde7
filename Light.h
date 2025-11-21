@@ -16,9 +16,10 @@ namespace PAG {
         //con esto puedo elegir uno de los tipos de luz
         std::unique_ptr<LightApplicator> applicator;
 
-        LightProperties props;
 
     public:
+        LightProperties props; //ojo lo necesito publico para el renderer
+
         Light(std::unique_ptr<LightApplicator> aplica);
 
         Light(Light&&) noexcept = default;
