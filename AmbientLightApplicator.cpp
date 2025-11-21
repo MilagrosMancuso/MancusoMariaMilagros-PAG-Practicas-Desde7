@@ -2,13 +2,13 @@
 // Created by Mili on 19/11/2025.
 //
 
-#include "EstrategiaLuzAmbiente.h"
+#include "AmbientLightApplicator.h"
 
 namespace PAG {
 
-    void EstrategiaLuzAmbiente::aplicaLuz(
+    void AmbientLightApplicator::aplicaLuz(
             GLuint program,
-            const PropiedadesLuz& p,
+            const LightProperties& p,
             const glm::mat4& V){
 
         // subrutina

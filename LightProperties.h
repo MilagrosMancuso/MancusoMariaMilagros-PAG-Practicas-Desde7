@@ -3,14 +3,14 @@
 // Clase para guardar los datos de la luz.
 //
 
-#ifndef PRACTICA1PAG_PROPIEDADESLUZ_H
-#define PRACTICA1PAG_PROPIEDADESLUZ_H
+#ifndef PRACTICA1PAG_LIGHTPROPERTIES_H
+#define PRACTICA1PAG_LIGHTPROPERTIES_H
 
 #include <glm/glm.hpp>
 
 namespace PAG {
 
-    class PropiedadesLuz {
+    class LightProperties {
 
         public:
             // Estado general
@@ -37,4 +37,4 @@ namespace PAG {
 }
 
 
-#endif //PRACTICA1PAG_PROPIEDADESLUZ_H
+#endif //PRACTICA1PAG_LIGHTPROPERTIES_H

@@ -21,16 +21,18 @@ add_executable( ${PROJECT_NAME} ${MY_FILES}
         Malla.cpp
         Malla.h
         Material.h
-        PropiedadesLuz.h
-        EstrategiaLuz.h
-        EstrategiaLuzAmbiente.h
-        EstrategiaLuzAmbiente.cpp
-        EstrategiaLuzPuntual.cpp
-        EstrategiaLuzPuntual.h
-        EstrategiaLuzDireccional.cpp
-        EstrategiaLuzDireccional.h
-        Luz.h
-        Luz.cpp
+        LightProperties.h
+        LightApplicator.h
+        AmbientLightApplicator.h
+        AmbientLightApplicator.cpp
+        PointLightApplicator.cpp
+        PointLightApplicator.h
+        DirectionalLightApplicator.cpp
+        DirectionalLightApplicator.h
+        Light.h
+        Light.cpp
+        SpotLightApplicator.h
+        SpotLightApplicator.cpp
 )
 
 # Indica directorios (adicionales a los por defecto) para buscar includes

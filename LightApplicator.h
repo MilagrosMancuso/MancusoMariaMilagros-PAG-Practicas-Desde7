@@ -4,23 +4,23 @@
 // Interfaz
 //
 
-#ifndef PRACTICA1PAG_ESTRATEGIALUZ_H
-#define PRACTICA1PAG_ESTRATEGIALUZ_H
+#ifndef PRACTICA1PAG_LIGHTAPPLICATOR_H
+#define PRACTICA1PAG_LIGHTAPPLICATOR_H
 
 #include <glad/glad.h>
-#include "PropiedadesLuz.h"
+#include "LightProperties.h"
 #include <glm/glm.hpp>
 
 namespace PAG {
 
-    class EstrategiaLuz {
+    class LightApplicator {
 
         public:
-            virtual ~EstrategiaLuz() = default;
+            virtual ~LightApplicator() = default;
 
             // Selecciona la subrutina GLSL y pasa los uniforms
             virtual void aplicaLuz(GLuint program,
-                                    const PropiedadesLuz& props,
+                                    const LightProperties& props,
                                     const glm::mat4& V) = 0; // matriz de vision
 
             // Nombre para GUI
@@ -30,4 +30,4 @@ namespace PAG {
 }
 
 
-#endif //PRACTICA1PAG_ESTRATEGIALUZ_H
+#endif //PRACTICA1PAG_LIGHTAPPLICATOR_H

@@ -2,13 +2,13 @@
 // Created by Mili on 19/11/2025.
 //
 
-#include "EstrategiaLuzDireccional.h"
+#include "DirectionalLightApplicator.h"
 
 namespace PAG {
 
-    void EstrategiaLuzDireccional::aplicaLuz(
+    void DirectionalLightApplicator::aplicaLuz(
             GLuint program,
-            const PropiedadesLuz& p,
+            const LightProperties& p,
             const glm::mat4& V)
     {
         GLuint sr = glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "aplicaDireccional");
