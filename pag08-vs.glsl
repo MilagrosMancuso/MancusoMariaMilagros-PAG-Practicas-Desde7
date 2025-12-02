@@ -1,28 +1,25 @@
 #version 410 core
 
-layout(location = 0) in vec3 aPos;       // posición
-layout(location = 1) in vec3 aNormal;    // normal
+layout (location = 0) in vec3 aPos;    // Posición del modelo
+layout (location = 1) in vec3 aNorm;   // Normal del modelo
 
-uniform mat4 uModel;
-uniform mat4 uView;
-uniform mat4 uProj;
+out vec3 vPosVS;    // Posición del vertice en View Space
+out vec3 vNormVS;   // Normal del vertice en View Space
 
-out vec3 vPosVS;       // posición en espacio de visión
-out vec3 vNormalVS;    // normal en espacio de visión
+uniform mat4 uModel; // Matriz de Modelo
+uniform mat4 uView;  // Matriz de Vista (Cámara)
+uniform mat4 uProj;  // Matriz de Proyección
 
 void main()
 {
-    // Matriz Model-View
-    mat4 MV = uView * uModel;
+    //Transformar posición al Espacio de Vista
+    vec4 posViewSpace = uView * uModel * vec4(aPos, 1.0);
+    vPosVS = posViewSpace.xyz;
 
-    // Posición en espacio de visión
-    vec4 posVS4 = MV * vec4(aPos, 1.0);
-    vPosVS = posVS4.xyz;
+    //Transformar Normal al Espacio de Vista
+    //  inversa transpuesta de la matriz
+    mat3 normalMatrix = transpose(inverse(mat3(uView * uModel)));
+    vNormVS = normalize(normalMatrix * aNorm);
 
-    // Normal en espacio de visión (normalMatrix = inversa de la traspuesta de la parte 3x3)
-    mat3 normalMatrix = transpose(inverse(mat3(MV)));
-    vNormalVS = normalize(normalMatrix * aNormal);
-
-    // Posición final en clip space
-    gl_Position = uProj * posVS4;
+    gl_Position = uProj * posViewSpace;
 }

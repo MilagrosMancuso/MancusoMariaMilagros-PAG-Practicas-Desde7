@@ -10,14 +10,15 @@ namespace PAG {
 
     class DirectionalLightApplicator : public LightApplicator {
     public:
-        const char* nombre() const override {
-            return "Direccional";
-        }
+        const char* nombre() const override { return "Direccional"; }
 
         void aplicaLuz(GLuint program,
-                        const LightProperties& p,
-                        const glm::mat4& V) override;
+                       const LightProperties& p,
+                       const glm::mat4& V) override;
+
+        GLuint getSubroutineIndex(GLuint program) const;
     };
 
 }
+
 #endif //PRACTICA1PAG_DIRECTIONALLIGHTAPPLICATOR_H

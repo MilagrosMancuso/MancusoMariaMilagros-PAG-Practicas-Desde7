@@ -30,9 +30,9 @@ add_executable( ${PROJECT_NAME} ${MY_FILES}
         DirectionalLightApplicator.cpp
         DirectionalLightApplicator.h
         Light.h
-        Light.cpp
         SpotLightApplicator.h
         SpotLightApplicator.cpp
+        Light.cpp
 )
 
 # Indica directorios (adicionales a los por defecto) para buscar includes

@@ -1,7 +1,6 @@
 //
 // Created by Mili on 19/11/2025.
 //
-
 #ifndef PRACTICA1PAG_POINTLIGHTAPPLICATOR_H
 #define PRACTICA1PAG_POINTLIGHTAPPLICATOR_H
 
@@ -11,15 +10,16 @@ namespace PAG {
 
     class PointLightApplicator : public LightApplicator {
     public:
-        const char* nombre() const override {
-            return "Puntual";
-        }
+        const char* nombre() const override { return "Puntual"; }
 
         void aplicaLuz(GLuint program,
-                        const LightProperties& p,
-                        const glm::mat4& V) override;
+                       const LightProperties& p,
+                       const glm::mat4& V) override;
+
+        GLuint getSubroutineIndex(GLuint program) const;
     };
 
 }
+
 
 #endif //PRACTICA1PAG_POINTLIGHTAPPLICATOR_H

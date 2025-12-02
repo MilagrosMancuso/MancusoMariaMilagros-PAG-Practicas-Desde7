@@ -1,7 +1,7 @@
 #version 410 core
 
-in vec3 vNormal;
-in vec3 vWorldPos;
+layout(location=0) in vec3 vNormal;
+layout(location=1) in vec3 vWorldPos;
 
 out vec4 colorFragmento;
 
@@ -15,19 +15,17 @@ uniform float uShininess;
 uniform vec3 uLightPos;
 uniform vec3 uViewPos;
 
-// ---- SUBRUTINAS ----
+//SUBRUTINAS
 subroutine vec4 fModoColor();
 subroutine uniform fModoColor uMetodoColor;
 
 // MODO 1: ALAMBRE
-subroutine(fModoColor)
-vec4 modoAlambre() {
+subroutine(fModoColor) vec4 modoAlambre() {
 return vec4(1, 0, 0, 1);  // rojo
 }
 
 // MODO 2: SOLIDO CON ILUMINACION PHONG
-subroutine(fModoColor)
-vec4 modoSolido() {
+subroutine(fModoColor) vec4 modoSolido() {
 
 vec3 N = normalize(vNormal);
 vec3 L = normalize(uLightPos - vWorldPos);

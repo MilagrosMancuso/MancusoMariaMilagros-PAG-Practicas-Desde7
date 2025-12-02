@@ -15,17 +15,20 @@ namespace PAG {
 
     class LightApplicator {
 
-        public:
-            virtual ~LightApplicator() = default;
+    public:
+        virtual ~LightApplicator() = default;
 
-            // Selecciona la subrutina GLSL y pasa los uniforms
-            virtual void aplicaLuz(GLuint program,
-                                    const LightProperties& props,
-                                    const glm::mat4& V) = 0; // matriz de vision
+        // Selecciona la subrutina GLSL y pasa los uniforms
+        virtual void aplicaLuz(GLuint program,
+                               const LightProperties &props,
+                               const glm::mat4 &V) = 0; // matriz de vision
 
-            // Nombre para GUI
-            virtual const char* nombre() const = 0;
-        };
+        // Nombre para GUI
+        virtual const char *nombre() const = 0;
+
+        //subrutina glsl
+        virtual GLuint getSubroutineIndex(GLuint program) const = 0;
+    };
 
 }
 

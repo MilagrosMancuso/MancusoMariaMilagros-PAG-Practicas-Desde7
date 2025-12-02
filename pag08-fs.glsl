@@ -1,132 +1,85 @@
 #version 410 core
 
 in vec3 vPosVS;
-in vec3 vNormalVS;
+in vec3 vNormVS;
 
-out vec4 FragColor;
+out vec4 fragColor;
 
-// Material
-uniform vec3  uKa;
-uniform vec3  uKd;
-uniform vec3  uKs;
+uniform vec3 uKa;      // K Ambiente
+uniform vec3 uKd;      // K Difuso
+uniform vec3 uKs;      // K Especular
 uniform float uShininess;
 
-// Luz ambiente
-uniform vec3 uAmbient_Ia;
+// Luces
+uniform vec3 uAmbiente_Ia; // Color Ambiente de la luz
+uniform vec3 uLight_Id;    // Color Difuso
+uniform vec3 uLight_Is;    // Color Especular
 
-// Luz puntual / direccional / foco
-uniform vec3 uLight_Id;
-uniform vec3 uLight_Is;
-uniform vec3 uLight_PosVS;   // para puntual/foco
-uniform vec3 uLight_DirVS;   // para direccional/foco
+uniform vec3 uLight_PosVS; // Posición Luz
+uniform vec3 uLight_DirVS; // Dirección Luz
 
-// Foco
-uniform float uSpot_cosGamma;
-uniform float uSpot_exp;
+// Parámetros Foco
+uniform float uSpot_cosGamma; // Coseno del ángulo de apertura
+uniform float uSpot_exp;      // Exponente de atenuación
 
-// iluminación
-subroutine vec4 LightFunc();
-subroutine uniform LightFunc uLightFunc;
+//Subrutinas
+subroutine vec3 LightCalculation(vec3 N, vec3 V);
+subroutine uniform LightCalculation uMetodoLuz;
 
+//Función Phong
+vec3 Phong(vec3 N, vec3 L, vec3 V) {
+    float diff = max(dot(N, L), 0.0);
+    vec3 difusa = uLight_Id * uKd * diff;
 
-// Luz Ambiente
-subroutine(LightFunc)
-vec4 applyAmbient()
-{
-vec3 color = uKa * uAmbient_Ia;
-return vec4(color, 1.0);
+    vec3 R = reflect(-L, N);
+    float spec = pow(max(dot(V, R), 0.0), uShininess);
+    vec3 especular = uLight_Is * uKs * spec;
+
+    return difusa + especular;
 }
 
-
-// luz Puntual
-subroutine(LightFunc)
-vec4 applyPoint()
-{
-vec3 N = normalize(vNormalVS);
-vec3 L = normalize(uLight_PosVS - vPosVS);  // desde punto a la luz
-float NdotL = max(dot(N, L), 0.0);
-
-// Difusa
-vec3 diffuse = uKd * uLight_Id * NdotL;
-
-// Especular (observador en origen de VS → V = -posVS)
-vec3 V = normalize(-vPosVS);
-vec3 R = reflect(-L, N);
-float RdotV = max(dot(R, V), 0.0);
-vec3 specular = vec3(0.0);
-if (NdotL > 0.0)
-specular = uKs * uLight_Is * pow(RdotV, uShininess);
-
-vec3 color = diffuse + specular;
-return vec4(color, 1.0);
+//  LUZ AMBIENTE
+subroutine(LightCalculation)
+    vec3 LuzAmbiente(vec3 N, vec3 V) {
+    return uAmbiente_Ia * uKa;
 }
 
-
-// Luz Direccional
-subroutine(LightFunc)
-vec4 applyDirectional()
-{
-vec3 N = normalize(vNormalVS);
-
-// d se define desde la luz hacia la escena
-// Vector hacia la luz = -d
-vec3 L = normalize(-uLight_DirVS);
-
-float NdotL = max(dot(N, L), 0.0);
-
-vec3 diffuse = uKd * uLight_Id * NdotL;
-
-vec3 V = normalize(-vPosVS);
-vec3 R = reflect(-L, N);
-float RdotV = max(dot(R, V), 0.0);
-vec3 specular = vec3(0.0);
-if (NdotL > 0.0)
-specular = uKs * uLight_Is * pow(RdotV, uShininess);
-
-vec3 color = diffuse + specular;
-return vec4(color, 1.0);
+//  LUZ PUNTUAL
+subroutine(LightCalculation)
+vec3 LuzPuntual(vec3 N, vec3 V) {
+    vec3 L = normalize(uLight_PosVS - vPosVS);
+    return Phong(N, L, V);
 }
 
+//  LUZ DIRECCIONAL
+subroutine(LightCalculation)
+vec3 LuzDireccional(vec3 N, vec3 V) {
+    vec3 L = normalize(-uLight_DirVS);
+    return Phong(N, L, V);
+}
 
-// Foco - Spot Light
-subroutine(LightFunc)
-vec4 applySpot()
-{
-vec3 N = normalize(vNormalVS);
-
-vec3 Lp = vPosVS - uLight_PosVS;   // desde luz hacia punto
-vec3 L  = normalize(uLight_PosVS - vPosVS); // hacia la luz
-
-// Dirección del foco (desde luz hacia escena)
+//  LUZ FOCO (SPOT)
+subroutine(LightCalculation)
+vec3 LuzSpot(vec3 N, vec3 V) {
+vec3 L = normalize(uLight_PosVS - vPosVS);
 vec3 D = normalize(uLight_DirVS);
 
-// cos del ángulo entre la dirección del foco y la dirección hacia el punto
-float cosTheta = dot(normalize(Lp), D);
+float cosTheta = dot(-L, D);
 
-// fuera del cono
-if (cosTheta < uSpot_cosGamma)
-return vec4(0.0);
-
-// factor suave
-float spotFactor = pow(cosTheta, uSpot_exp);
-
-float NdotL = max(dot(N, L), 0.0);
-
-vec3 diffuse = uKd * uLight_Id * NdotL;
-
-vec3 V = normalize(-vPosVS);
-vec3 R = reflect(-L, N);
-float RdotV = max(dot(R, V), 0.0);
-vec3 specular = vec3(0.0);
-
-if (NdotL > 0.0)
-specular = uKs * uLight_Is * pow(RdotV, uShininess);
-
-vec3 color = (diffuse + specular) * spotFactor;
-return vec4(color, 1.0);
+if(cosTheta > uSpot_cosGamma) {
+    float spotFactor = pow(cosTheta, uSpot_exp);
+    return Phong(N, L, V) * spotFactor;
+}
+    else {
+        return vec3(0.0);
+    }
 }
 
-void main()
-{
-FragColor = uLightFunc();
+void main() {
+    vec3 N = normalize(vNormVS);
+    vec3 V = normalize(-vPosVS);
+
+    vec3 colorFinal = uMetodoLuz(N, V);
+
+    fragColor = vec4(colorFinal, 1.0);
 }

@@ -12,33 +12,24 @@
 namespace PAG {
     class Light {
     private:
-        //@todo ojo, no estoy segura de que esto funcione bien
-        //con esto puedo elegir uno de los tipos de luz
-        std::unique_ptr<LightApplicator> applicator;
-
+        std::unique_ptr<LightApplicator> aplic;
 
     public:
-        LightProperties props; //ojo lo necesito publico para el renderer
+        LightProperties props;
 
-        Light(std::unique_ptr<LightApplicator> aplica);
+        Light(std::unique_ptr<LightApplicator> a)
+                : aplic(std::move(a)) {}
 
         Light(Light&&) noexcept = default;
         Light& operator=(Light&&) noexcept = default;
 
-
-        LightApplicator* estrategia() {
-            return applicator.get();
-        }
-
-        const LightApplicator* estrategia() const {
-            return applicator.get();
-        }
-
         const char* nombreEstrategia() const {
-            return applicator->nombre();
+            return aplic->nombre();
         }
 
-        void setEstrategia(std::unique_ptr<LightApplicator> e);
+        void setEstrategia(std::unique_ptr<LightApplicator> a) {
+            aplic = std::move(a);
+        }
 
         void aplica(GLuint program, const glm::mat4& V) const;
     };

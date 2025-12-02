@@ -37,7 +37,7 @@ class Malla{
 
         //dobles deletes y problemitas que me daba
         Malla(const Malla&) = delete;
-        Malla operator= (const Malla&) = delete;
+        Malla& operator=(const Malla&) = delete;
 
         Malla(Malla&& m) noexcept;
         Malla& operator=(Malla&& m) noexcept;

@@ -1,30 +1,33 @@
 //
 // Created by Mili on 21/11/2025.
 //
-
 #include "SpotLightApplicator.h"
+#include <glm/gtc/type_ptr.hpp>
+#include <cmath>
 
 namespace PAG {
 
-    void SpotLightApplicator ::aplicaLuz(GLuint program, const PAG::LightProperties &p, const glm::mat4 &V) {
+    void SpotLightApplicator::aplicaLuz(GLuint program, const LightProperties& p, const glm::mat4& V)
+    {
+        GLuint index = glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "LuzSpot");
+        glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &index);
 
-        //elijo que tipo de luz usamos en esta pasada
-        GLuint sr = glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "AplicarSpot");
-        glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &sr);
-
-        //todos los calculos hay que hacerlos en el espacio de vision
         glm::vec3 posVS = glm::vec3(V * glm::vec4(p.posicion, 1.0));
-        glm::vec3 dirVS = glm::normalize(glm::mat3(V) * p.direccion);
+        glm::vec3 dirVS = glm::normalize(glm::vec3(V * glm::vec4(p.direccion, 0.0)));
 
-        glUniform3fv(glGetUniformLocation(program, "uLight_PosVS"), 1, &posVS[0]);
-        glUniform3fv(glGetUniformLocation(program, "uLight_DirVS"), 1, &dirVS[0]);
-        glUniform3fv(glGetUniformLocation(program, "uLight_Id"),    1, &p.Id[0]);
-        glUniform3fv(glGetUniformLocation(program, "uLight_Is"),    1, &p.Is[0]);
+        // Coseno del ángulo
+        float cosGamma = std::cos(glm::radians(p.aperturaGrados));
 
-        //parametros del cono de luz
-        float cosGamma = cos(glm::radians(p.aperturaGrados));
-        glUniform1f(glGetUniformLocation(program, "uSpot_cosGamma"), cosGamma); //Es el coseno del angulo interior del foco.
-        glUniform1f(glGetUniformLocation(program, "uSpot_exp"),      p.spotExp); //con esto suavizamos los bordes
+        glUniform3fv(glGetUniformLocation(program, "uLight_PosVS"), 1, glm::value_ptr(posVS));
+        glUniform3fv(glGetUniformLocation(program, "uLight_DirVS"), 1, glm::value_ptr(dirVS));
+        glUniform3fv(glGetUniformLocation(program, "uLight_Id"),    1, glm::value_ptr(p.Id));
+        glUniform3fv(glGetUniformLocation(program, "uLight_Is"),    1, glm::value_ptr(p.Is));
+        glUniform1f (glGetUniformLocation(program, "uSpot_cosGamma"), cosGamma);
+        glUniform1f (glGetUniformLocation(program, "uSpot_exp"),      p.spotExp);
     }
 
+    GLuint SpotLightApplicator::getSubroutineIndex(GLuint program) const
+    {
+        return glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "LuzSpot");
+    }
 }

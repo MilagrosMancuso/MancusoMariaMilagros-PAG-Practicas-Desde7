@@ -3,23 +3,27 @@
 //
 
 #include "AmbientLightApplicator.h"
+#include <glm/gtc/type_ptr.hpp>
 
 namespace PAG {
 
     void AmbientLightApplicator::aplicaLuz(
             GLuint program,
             const LightProperties& p,
-            const glm::mat4& V){
+            const glm::mat4& V)
+    {
+        GLuint index = glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "LuzAmbiente");
+        glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &index);
 
-        // subrutina
-        GLuint sr = glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "aplicaAmbiente");
-        glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &sr);
+        // Enviar el color ambiente
+        glUniform3fv(glGetUniformLocation(program, "uAmbiente_Ia"), 1, glm::value_ptr(p.Ia));
 
-        // Uniform ambiente
-        GLint locIa = glGetUniformLocation(program, "uAmbiente_Ia");
+    }
 
-        if (locIa >= 0)
-            glUniform3fv(locIa, 1, &p.Ia[0]);
+
+    GLuint AmbientLightApplicator::getSubroutineIndex(GLuint program) const
+    {
+        return glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "LuzAmbiente");
     }
 
 }

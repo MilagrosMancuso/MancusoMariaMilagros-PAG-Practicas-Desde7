@@ -72,20 +72,6 @@ namespace PAG {
         glEnable(GL_DEPTH_TEST);
     }
 
-   /* void Renderer::refrescar() {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-          //el triangulo
-           if (idSP == 0 || idVAO == 0 || idIBO == 0) return;
-           glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-           glUseProgram(idSP);
-           glBindVertexArray(idVAO); //vinculamos el vao en la funcionalidad de refrescar
-           glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, idIBO);
-           glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
-
-        dibujaModelos();
-
-    }*/
 
     void Renderer::redimencionar(int ancho, int alto) {
         glViewport(0, 0, ancho, alto);
@@ -197,12 +183,10 @@ namespace PAG {
     void PAG::Renderer::inicializaOpenGL() {
         glClearColor(_colorBorrado[0], _colorBorrado[1], _colorBorrado[2], _colorBorrado[3]);
         glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LEQUAL);      // para multipasada con blending
-
         glEnable(GL_MULTISAMPLE);
 
-        glEnable(GL_BLEND);          // activamos blending globalmente
-        glBlendEquation(GL_FUNC_ADD);
+        glDepthFunc(GL_LEQUAL);      // para multipasada con blending
+
     }
 
 
@@ -246,6 +230,7 @@ namespace PAG {
             shaderProg = nullptr;
             idSP = 0;
         }
+
         shaderProg = nuevo;
         idSP = nuevoID;
 
@@ -295,6 +280,7 @@ namespace PAG {
     }
 
     void Renderer::fetchSubroutines() {
+        /*
         // Localizar el uniform de subrutinas
         locSubroutine = glGetSubroutineUniformLocation(
                 idSP,
@@ -324,6 +310,15 @@ namespace PAG {
 
         if (idxModoSolido == GL_INVALID_INDEX)
             addMensaje("ERROR: No se encontró subrutina modoSolido.");
+            */
+        if (idSP == 0) return;
+
+        // Buscamos la variable uniforme de subrutina "uMetodoLuz"
+        locMetodoLuz = glGetSubroutineUniformLocation(idSP, GL_FRAGMENT_SHADER, "uMetodoLuz");
+
+        if (locMetodoLuz < 0) {
+            addMensaje("AVISO: No se encontró la subrutina uniforme 'uMetodoLuz' en el Fragment Shader.");
+        }
     }
 
 
@@ -374,11 +369,13 @@ namespace PAG {
         return _modelos[idx].get();
     }
 
-    void Renderer::dibujaModelos(const glm::mat4& view, const glm::mat4& proj) {
+    void Renderer::dibujaModelos() {
         if (idSP == 0) return;
 
         glUseProgram(idSP);
 
+        const auto& view = cam.matrizVision();
+        const auto& proj = cam.matrizProyeccion();
 
         if (uViewLoc >= 0) glUniformMatrix4fv(uViewLoc, 1, GL_FALSE, glm::value_ptr(view));
         if (uProjLoc >= 0) glUniformMatrix4fv(uProjLoc, 1, GL_FALSE, glm::value_ptr(proj));
@@ -391,28 +388,28 @@ namespace PAG {
         glUniform3fv(glGetUniformLocation(idSP, "uViewPos"), 1, glm::value_ptr(camPos));
 
         //esta es la luz, esta fija
-        glm::vec3 lightPos(2.0f, 3.0f, 2.0f);
-        glUniform3fv(glGetUniformLocation(idSP, "uLightPos"), 1, glm::value_ptr(lightPos));
+       // glm::vec3 lightPos(2.0f, 3.0f, 2.0f);
+       // glUniform3fv(glGetUniformLocation(idSP, "uLightPos"), 1, glm::value_ptr(lightPos));
 
-        // DIBUJAR TODOS LOS MODELOS
         for (auto& m : _modelos) {
             if (!m) continue;
 
-            glUniformMatrix4fv(uModelLoc, 1, GL_FALSE, glm::value_ptr(m->modelaMatrix()));
+            // Enviar matriz modelo
+            //if (uModelLoc >= 0)
+                glUniformMatrix4fv(uModelLoc, 1, GL_FALSE, glm::value_ptr(m->modelaMatrix()));
 
-            // MATERIAL
+            // Enviar Material
             const Material& mat = m->getMaterial();
-
             glUniform3fv(glGetUniformLocation(idSP, "uKa"), 1, &mat.Ka[0]);
             glUniform3fv(glGetUniformLocation(idSP, "uKd"), 1, &mat.Kd[0]);
             glUniform3fv(glGetUniformLocation(idSP, "uKs"), 1, &mat.Ks[0]);
             glUniform1f (glGetUniformLocation(idSP, "uShininess"), mat.brillo);
 
             // SUBRUTINAS: modo alambre / modo solido
-            GLuint modo = m->getWireframe() ? idxModoAlambre : idxModoSolido;
-            glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &modo);
+           // GLuint modo = m->getWireframe() ? idxModoAlambre : idxModoSolido;
+           // glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &modo);
 
-            // DIBUJAR
+            // Renderizar
             m->dibuja();
         }
     }
@@ -434,52 +431,53 @@ namespace PAG {
 
         if (idSP == 0) return;
 
-        // Matrices de camara
-        const glm::mat4 view = cam.matrizVision();
-        const glm::mat4 proj = cam.matrizProyeccion();
-
         glUseProgram(idSP);
 
-        // Si NO hay luces definidas, dibujamos como antes (de una sola pasada)
-        if (_luces.empty()) {
-            glm::vec3 defaultLightPos(2.0f, 3.0f, 2.0f);
-            GLint loc = glGetUniformLocation(idSP, "uLightPos");
-            if (loc >= 0)
-                glUniform3fv(loc, 1, glm::value_ptr(defaultLightPos));
-//@todo mirar bien
-            //glDisable(GL_BLEND);  // sin blending si solo hay una pasada
-            dibujaModelos(view, proj);
+        glm::mat4 view = cam.matrizVision();
+        glm::mat4 proj = cam.matrizProyeccion();
+        if (uViewLoc >= 0) glUniformMatrix4fv(uViewLoc, 1, GL_FALSE, glm::value_ptr(view));
+        if (uProjLoc >= 0) glUniformMatrix4fv(uProjLoc, 1, GL_FALSE, glm::value_ptr(proj));
 
-            glUseProgram(0);
-            return;
-        }
+        // Renderizar LUZ AMBIENTE (Base)
+        glDisable(GL_BLEND); // La primera pasada sobrescribe el fondo
 
-        // Hay luces hacemos multipasada
-        glEnable(GL_BLEND);
-        glBlendEquation(GL_FUNC_ADD);
-        glDepthFunc(GL_LEQUAL);
+        // Seleccionar subrutina LuzAmbiente
+        GLuint subAmbiente = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "LuzAmbiente");
+        glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &subAmbiente);
 
-        bool primera = true;
-
-        for (const auto& luz : _luces) {
-            if (!luz.props.activa) continue;
-
-            // Función de mezcla según si es la primera luz o una adicional
-            if (primera) {
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                primera = false;
-            } else {
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+        // Calcular ambiente total (suma de todas las luces ambiente activas o un valor base)
+        glm::vec3 ambienteTotal(0.0);
+        bool hayLuces = false;
+        for(const auto& L : _luces) {
+            if(L.props.activa) {
+                ambienteTotal += L.props.Ia;
+                hayLuces = true;
             }
+        }
+        // Si no hay luces, poner un mínimo para que se vea algo (la vaca gris)
+        if(!hayLuces) ambienteTotal = glm::vec3(0.2f);
 
-            // La estrategia de la luz selecciona la subrutina y pasa uniforms específicos
-            luz.aplica(idSP, view);
+        glUniform3fv(glGetUniformLocation(idSP, "uAmbiente_Ia"), 1, glm::value_ptr(ambienteTotal));
 
-            // Dibujamos los modelos con esa luz activa
-            dibujaModelos(view, proj);
+        dibujaModelos(); // Dibujar pasada base
+
+        // Renderizar LUCES ACTIVAS
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_ONE, GL_ONE); // Sumar color luz al color base
+        glDepthFunc(GL_LEQUAL);      // Dibujar sobre la misma superficie
+
+        for (const Light& L : _luces) {
+            if (!L.props.activa) continue;
+
+            std::string tipo = L.nombreEstrategia();
+
+            if (tipo == "Ambiente") continue;
+
+            L.aplica(idSP, view);
+
+            dibujaModelos(); // Dibujar
         }
 
-        glUseProgram(0);
-
+        glDisable(GL_BLEND); // Restaurar estado
     }
 }

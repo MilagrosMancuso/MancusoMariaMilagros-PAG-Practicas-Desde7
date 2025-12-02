@@ -95,6 +95,35 @@ namespace PAG {
 
             ImGui::Separator();
 
+            //predefinir algunos modelos para que sea mas rapido
+            ImGui::Text("Cargar modelo rápido:");
+
+            static const char* modelosPre[] = {
+                    "vaca.obj",
+                    "t-rex.obj",
+                    "dado.obj"
+            };
+
+            static int modeloPreIndex = 0;
+
+            ImGui::PushItemWidth(200);
+            ImGui::Combo("##comboModelosPre", &modeloPreIndex, modelosPre, IM_ARRAYSIZE(modelosPre));
+            ImGui::PopItemWidth();
+
+            ImGui::SameLine();
+            if (ImGui::Button("Cargar", ImVec2(80, 0))) {
+                std::string rutaAuto = std::string("modelos/") + modelosPre[modeloPreIndex];
+                int idx = renderer.loadOBJModel(rutaAuto, true);
+                if (idx >= 0) {
+                    selec = idx;
+                    renderer.setModeloSeleccionado(selec);
+                }
+            }
+
+
+
+            ImGui::Separator();
+
             //los modelos
             auto n_modelo = renderer.listaNombreModelo();
 
@@ -132,6 +161,8 @@ namespace PAG {
                 }
 
                 ImGui::Separator();
+
+
 
                 //transformaciones en modelos
                 Modelo *m = renderer.getModelo(selec);
@@ -386,9 +417,9 @@ namespace PAG {
                     luces.erase(luces.begin() + luzSel);
                     if (luzSel >= (int)luces.size())
                         luzSel = (int)luces.size() - 1;
-                    ImGui::End(); // salir antes de usar L si ya no existe
 
-                    goto SkipLightsWindowEnd;
+                    ImGui::End();
+                    return;
                 }
 
                 ImGui::Separator();

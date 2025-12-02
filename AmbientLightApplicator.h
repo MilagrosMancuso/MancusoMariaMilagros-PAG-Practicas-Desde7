@@ -9,17 +9,15 @@
 namespace PAG {
 
     class AmbientLightApplicator : public LightApplicator {
+    public:
+        const char* nombre() const override { return "Ambiente"; }
 
-        public:
-            const char* nombre() const override {
-                return "Ambiente";
-            }
+        void aplicaLuz(GLuint program,
+                       const LightProperties& p,
+                       const glm::mat4& V) override;
 
-            void aplicaLuz(GLuint program,
-                            const LightProperties& p,
-                            const glm::mat4& V) override;
+        GLuint getSubroutineIndex(GLuint program) const;
     };
-
 }
 
 #endif //PRACTICA1PAG_AMBIENTLIGHTAPPLICATOR_H
