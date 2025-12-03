@@ -322,3 +322,154 @@ Wireframe ON
 ## UML Actual: 
 
 ![Diagrama UML](umlPAG7.png)
+
+
+# PRACTICA 8 – ILUMINACIÓN 
+
+------------------------------------------------------------
+## 2. FUNCIONALIDAD IMPLEMENTADA
+
+### 2.1. Tipos de luz
+
+Se han implementado cuatro tipos de luz:
+- Luz ambiente
+- Luz puntual
+- Luz direccional
+- Luz tipo foco 
+
+Cada luz dispone de los parámetros típicos del modelo de Phong:
+
+- Ia: componente ambiental (color ambiente de la luz).
+- Id: componente difusa.
+- Is: componente especular.
+- Posición (para luz puntual y foco).
+- Dirección (para luz direccional y foco).
+- Apertura del foco (ángulo del cono).
+- Exponente del foco (concentración del haz).
+
+Todos estos parámetros se almacenan en la estructura LightProperties.
+
+
+### 2.2. Renderizado multipasada
+
+El renderer realiza el dibujo de la escena en varias pasadas:
+
+- Si NO hay luces definidas:
+    - Se dibuja la escena con una única iluminación ambiente por defecto para evitar que el modelo quede completamente negro.
+
+- Si HAY luces definidas:
+    - Se recorre el vector de luces.
+    - Por cada luz activa:
+        - Si es la primera luz:
+            - Se limpia el color y el depth buffer.
+            - Se establece un blending de tipo SRC_ALPHA, ONE_MINUS_SRC_ALPHA.
+        - Para el resto de luces:
+            - Se establece blending aditivo: SRC_ALPHA, ONE.
+        - Se aplica la estrategia de esa luz (LightApplicator), que selecciona su subrutina GLSL y envía sus uniforms.
+        - Se dibujan todos los modelos de la escena.
+    - De este modo, la contribución de cada luz se acumula sobre la imagen.
+
+
+### 2.3. Subrutinas GLSL
+
+En el fragment shader se utilizan dos grupos de subrutinas:
+
+- Subrutinas de iluminación (una por tipo de luz):
+    - Luz ambiente.
+    - Luz puntual.
+    - Luz direccional.
+    - Luz tipo foco.
+
+- Subrutinas de modo de renderizado:
+    - modoSolido: aplica la iluminación Phong.
+    - modoAlambre: pinta el modelo en rojo para el modo wireframe.
+
+------------------------------------------------------------
+## 3. DISEÑO DE CLASES PRINCIPALES
+
+### LightProperties
+
+Clase (o estructura) que agrupa todos los parámetros de una luz.
+Se utiliza para pasar información entre la GUI, las clases Light y LightApplicator y el shader.
+
+
+### LightApplicator
+
+Clase abstracta que define la interfaz común para todas las luces.
+
+Cada implementación concreta se encarga de:
+- Seleccionar la subrutina GLSL adecuada para su tipo de luz.
+- Transformar posición y/o dirección al espacio de vista usando la matriz V.
+- Enviar los uniforms correspondientes al shader.
+
+
+### Clases derivadas de LightApplicator
+
+- AmbientLightApplicator:
+    - Aplica únicamente la componente ambiental de la luz.
+    - No usa posición ni dirección.
+
+- PointLightApplicator:
+    - Transforma la posición de la luz a sistema de coordenadas de vista.
+    - Aplica el modelo de Phong para luz puntual.
+
+- DirectionalLightApplicator:
+    - Transforma la dirección de la luz a coordenadas de vista.
+    - Aplica iluminación direccional.
+
+- SpotLightApplicator:
+    - Transforma posición y dirección a coordenadas de vista.
+    - Calcula el factor de foco en base a aperturaGrados y spotExp.
+    - Aplica iluminación tipo foco.
+
+
+### Light
+
+- nombreEstrategia(): devuelve el nombre del tipo de luz, usado en la GUI.
+- setEstrategia(): permite cambiar de tipo de luz manteniendo las propiedades.
+- aplica(GLuint program, const glm::mat4& V): llama a la estrategia actual para aplicar la luz en el shader.
+
+Esto permite que desde la interfaz se pueda cambiar el tipo de luz (por ejemplo, de puntual a foco) sin perder los valores de color, posición, etc.
+
+
+### Renderer
+
+El Renderer es el encargado de:
+
+- Gestionar el shader program actual (pag08-vs.glsl / pag08-fs.glsl).
+- Guardar y actualizar las matrices de vista y proyección (Camera).
+- Gestionar la lista de modelos (carga de OBJ, selección, borrado, materiales).
+- Gestionar la lista de luces (añadir, eliminar, aplicar).
+- Ejecutar el bucle de dibujo (refrescar) utilizando el sistema multipasada.
+
+Puntos clave:
+- fetchUniforms(): busca las localizaciones de uModel, uView, uProj y otros uniforms.
+- fetchSubroutines(): obtiene los índices de las subrutinas modoSolido y modoAlambre en el fragment shader.
+- dibujaModelos(): recorre todos los modelos, envía su matriz de modelado, su material y selecciona la subrutina de modo (alambre o sólido).
+- refrescar(): realiza el proceso completo de dibujo utilizando las luces definidas.
+
+
+------------------------------------------------------------
+## 4. SHADERS UTILIZADOS (pag08)
+
+Shader de vértices (pag08-vs.glsl):
+
+- Recibe atributos de posición y normal.
+- Calcula la posición en coordenadas de mundo y/o vista.
+- Calcula las normales transformadas de forma correcta (usando la matriz normal).
+- Envía al fragment shader la posición y la normal necesarias para el cálculo de la iluminación.
+
+Shader de fragmentos (pag08-fs.glsl):
+
+- Declara los uniforms de material (uKa, uKd, uKs, uShininess).
+- Declara los uniforms de luz según el tipo (posiciones, direcciones, colores).
+- Declara subrutinas para los distintos tipos de luz (ambiente, puntual, direccional, foco).
+- Declara subrutinas para el modo de dibujo (modoSolido, modoAlambre).
+- En función de la subrutina seleccionada desde C++, calcula el color final del fragmento.
+- En modo sólido se aplica el modelo de Phong combinado con la contribución de la luz actual.
+- En modo alambre se muestra el modelo en un color fijo (por ejemplo, rojo).
+
+## Diagrama UML.
+
+
+![Diagrama UML](umlPAG7.png)
