@@ -472,4 +472,4 @@ Shader de fragmentos (pag08-fs.glsl):
 ## Diagrama UML.
 
 
-![Diagrama UML](umlPAG7.png)
+![Diagrama UML](umlPAG8.png)
