@@ -370,33 +370,13 @@ namespace PAG {
     }
 
     void Renderer::dibujaModelos() {
-        if (idSP == 0) return;
-
-        glUseProgram(idSP);
-
-        const auto& view = cam.matrizVision();
-        const auto& proj = cam.matrizProyeccion();
-
-        if (uViewLoc >= 0) glUniformMatrix4fv(uViewLoc, 1, GL_FALSE, glm::value_ptr(view));
-        if (uProjLoc >= 0) glUniformMatrix4fv(uProjLoc, 1, GL_FALSE, glm::value_ptr(proj));
-
-
-        // uViewPos desde la inversa de la View. lo necesito para saber donde estoy
-        glm::mat4 invView = glm::inverse(view);
-        glm::vec3 camPos = glm::vec3(invView[3]);
-
-        glUniform3fv(glGetUniformLocation(idSP, "uViewPos"), 1, glm::value_ptr(camPos));
-
-        //esta es la luz, esta fija
-       // glm::vec3 lightPos(2.0f, 3.0f, 2.0f);
-       // glUniform3fv(glGetUniformLocation(idSP, "uLightPos"), 1, glm::value_ptr(lightPos));
 
         for (auto& m : _modelos) {
             if (!m) continue;
 
             // Enviar matriz modelo
-            //if (uModelLoc >= 0)
-                glUniformMatrix4fv(uModelLoc, 1, GL_FALSE, glm::value_ptr(m->modelaMatrix()));
+            if (uModelLoc >= 0)
+            glUniformMatrix4fv(uModelLoc, 1, GL_FALSE, glm::value_ptr(m->modelaMatrix()));
 
             // Enviar Material
             const Material& mat = m->getMaterial();
@@ -404,10 +384,6 @@ namespace PAG {
             glUniform3fv(glGetUniformLocation(idSP, "uKd"), 1, &mat.Kd[0]);
             glUniform3fv(glGetUniformLocation(idSP, "uKs"), 1, &mat.Ks[0]);
             glUniform1f (glGetUniformLocation(idSP, "uShininess"), mat.brillo);
-
-            // SUBRUTINAS: modo alambre / modo solido
-           // GLuint modo = m->getWireframe() ? idxModoAlambre : idxModoSolido;
-           // glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &modo);
 
             // Renderizar
             m->dibuja();
@@ -432,14 +408,17 @@ namespace PAG {
         if (idSP == 0) return;
 
         glUseProgram(idSP);
+        fetchUniforms();
+        fetchSubroutines();
 
         glm::mat4 view = cam.matrizVision();
         glm::mat4 proj = cam.matrizProyeccion();
         if (uViewLoc >= 0) glUniformMatrix4fv(uViewLoc, 1, GL_FALSE, glm::value_ptr(view));
         if (uProjLoc >= 0) glUniformMatrix4fv(uProjLoc, 1, GL_FALSE, glm::value_ptr(proj));
 
-        // Renderizar LUZ AMBIENTE (Base)
-        glDisable(GL_BLEND); // La primera pasada sobrescribe el fondo
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Sumar color luz al color base
+        glDepthFunc(GL_LEQUAL);      // Dibujar sobre la misma superficie
 
         // Seleccionar subrutina LuzAmbiente
         GLuint subAmbiente = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "LuzAmbiente");
@@ -462,9 +441,7 @@ namespace PAG {
         dibujaModelos(); // Dibujar pasada base
 
         // Renderizar LUCES ACTIVAS
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_ONE, GL_ONE); // Sumar color luz al color base
-        glDepthFunc(GL_LEQUAL);      // Dibujar sobre la misma superficie
+        glBlendFunc ( GL_SRC_ALPHA, GL_ONE );
 
         for (const Light& L : _luces) {
             if (!L.props.activa) continue;
@@ -478,6 +455,5 @@ namespace PAG {
             dibujaModelos(); // Dibujar
         }
 
-        glDisable(GL_BLEND); // Restaurar estado
     }
 }

@@ -32,7 +32,6 @@ namespace PAG {
     };
 }
 
-
 #endif //PRACTICA1PAG_SHARDERPROGRAM_H
 
 

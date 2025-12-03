@@ -18,8 +18,8 @@ void main()
 
     //Transformar Normal al Espacio de Vista
     //  inversa transpuesta de la matriz
-    mat3 normalMatrix = transpose(inverse(mat3(uView * uModel)));
-    vNormVS = normalize(normalMatrix * aNorm);
+    mat4 normalMatrix = transpose(inverse(uView * uModel));
+    vNormVS = normalize(normalMatrix * vec4 ( aNorm, 0.0 ) ).xyz;
 
     gl_Position = uProj * posViewSpace;
 }

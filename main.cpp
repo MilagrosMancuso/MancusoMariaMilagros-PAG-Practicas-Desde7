@@ -3,7 +3,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "Renderer.h"
-#include "GUI.h"
+#include "Gui.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
@@ -82,17 +82,17 @@ void mouse_button_callback ( GLFWwindow *window, int button, int action, int mod
 
 // Cada vez que se mueva la rueda del ratón sobre el área de dibujo OpenGL.
 void scroll_callback ( GLFWwindow *window, double xoffset, double yoffset ){
-  /*  //@todo EJERCICIO 1:
-    auto& renderer = PAG::Renderer::getInstancia();
-    const float* actual = renderer.getColorFondo();
-    float nuevoC[3] = {actual[0], actual[1], actual[2] };
+    /*  //@todo EJERCICIO 1:
+      auto& renderer = PAG::Renderer::getInstancia();
+      const float* actual = renderer.getColorFondo();
+      float nuevoC[3] = {actual[0], actual[1], actual[2] };
 
-    for(int i=0; i < 3; i++){
-        colorf[i] += 0.05 * yoffset;
-        //limitamos para que no se pase del rango
-        if (nuevoC[i] < 0.0) {nuevoC[i] = 0.0;}
-        if (nuevoC[i] > 1.0) {nuevoC[i] = 1.0;}
-    }*/
+      for(int i=0; i < 3; i++){
+          colorf[i] += 0.05 * yoffset;
+          //limitamos para que no se pase del rango
+          if (nuevoC[i] < 0.0) {nuevoC[i] = 0.0;}
+          if (nuevoC[i] > 1.0) {nuevoC[i] = 1.0;}
+      }*/
     ImGuiIO& io = ImGui::GetIO();
     // Si ImGui NO quiere el mouse, lo usamos para zoom de la cámara
     if (!io.WantCaptureMouse) {

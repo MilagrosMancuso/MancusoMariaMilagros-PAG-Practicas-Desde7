@@ -28,11 +28,11 @@ subroutine uniform LightCalculation uMetodoLuz;
 
 //Función Phong
 vec3 Phong(vec3 N, vec3 L, vec3 V) {
-    float diff = max(dot(N, L), 0.0);
+    float diff = max(dot(L, N), 0.0);
     vec3 difusa = uLight_Id * uKd * diff;
 
     vec3 R = reflect(-L, N);
-    float spec = pow(max(dot(V, R), 0.0), uShininess);
+    float spec = pow(max(dot(R, V), 0.0), uShininess);
     vec3 especular = uLight_Is * uKs * spec;
 
     return difusa + especular;
@@ -40,22 +40,22 @@ vec3 Phong(vec3 N, vec3 L, vec3 V) {
 
 //  LUZ AMBIENTE
 subroutine(LightCalculation)
-    vec3 LuzAmbiente(vec3 N, vec3 V) {
-    return uAmbiente_Ia * uKa;
+vec3 LuzAmbiente(vec3 N, vec3 V) {
+return uAmbiente_Ia * uKa;
 }
 
 //  LUZ PUNTUAL
 subroutine(LightCalculation)
 vec3 LuzPuntual(vec3 N, vec3 V) {
-    vec3 L = normalize(uLight_PosVS - vPosVS);
-    return Phong(N, L, V);
+vec3 L = normalize(uLight_PosVS - vPosVS);
+return Phong(N, L, V);
 }
 
 //  LUZ DIRECCIONAL
 subroutine(LightCalculation)
 vec3 LuzDireccional(vec3 N, vec3 V) {
-    vec3 L = normalize(-uLight_DirVS);
-    return Phong(N, L, V);
+vec3 L = normalize(-uLight_DirVS);
+return Phong(N, L, V);
 }
 
 //  LUZ FOCO (SPOT)
@@ -67,19 +67,19 @@ vec3 D = normalize(uLight_DirVS);
 float cosTheta = dot(-L, D);
 
 if(cosTheta > uSpot_cosGamma) {
-    float spotFactor = pow(cosTheta, uSpot_exp);
-    return Phong(N, L, V) * spotFactor;
+float spotFactor = pow(cosTheta, uSpot_exp);
+return Phong(N, L, V) * spotFactor;
 }
-    else {
-        return vec3(0.0);
-    }
+else {
+return vec3(0.0);
+}
 }
 
 void main() {
-    vec3 N = normalize(vNormVS);
-    vec3 V = normalize(-vPosVS);
+vec3 N = normalize(vNormVS);
+vec3 V = normalize(-vPosVS);
 
-    vec3 colorFinal = uMetodoLuz(N, V);
+vec3 colorFinal = uMetodoLuz(N, V);
 
-    fragColor = vec4(colorFinal, 1.0);
+fragColor = vec4(colorFinal, 1.0);
 }

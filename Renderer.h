@@ -57,11 +57,6 @@ namespace PAG {
         // Luces
         std::vector<Light> _luces;
 
-      //  GLuint idxModoAlambre = 0;
-      //  GLuint idxModoSolido  = 0;
-       // GLint locSubroutine   = -1;
-
-       // GLuint activeLightSubroutine = 0;
 
     public:
         static Renderer& getInstancia();
@@ -82,7 +77,7 @@ namespace PAG {
 
         //Shader
         void creaShaderProgram();
-         void loadShaderProgramFromBase(const std::string &baseName);
+        void loadShaderProgramFromBase(const std::string &baseName);
 
         //Crear la geometria basica
         void creaModelo();
