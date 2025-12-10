@@ -15,10 +15,8 @@ out vec2 vUV;
 void main ()
 {
     vec4 posWorld = uModel * vec4(posicion, 1.0);
-
     vPosWorld = posWorld.xyz;
     vNormalWorld = mat3(transpose(inverse(uModel))) * normal;
     vUV = cTextura;
-
     gl_Position = uProj * uView * posWorld;
 }

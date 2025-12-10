@@ -119,10 +119,10 @@ namespace PAG {
     /**
      * SET Para una textura
      */
-    void Modelo::asignarTextura(const std::string& rutaPNG)
+    void Modelo::asignarTextura(const std::string& ruta)
     {
         _textura = std::make_unique<Textura>();
-        _textura->carga(rutaPNG);
+        _textura->carga(ruta);
         _usarTextura = true;
     }
 }

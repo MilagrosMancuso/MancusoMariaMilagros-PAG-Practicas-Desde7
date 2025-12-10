@@ -79,10 +79,11 @@ namespace PAG{
 
 
         // Para la textura
-        void asignarTextura(const std::string& rutaPNG);
+        void asignarTextura(const std::string& ruta);
 
         bool tieneTextura() const { return _textura != nullptr; }
         bool usaTextura() const { return _usarTextura && _textura; }
+
         void setUsarTextura(bool v) { _usarTextura = v; }
         const Textura& getTextura() const { return *_textura; }
     };

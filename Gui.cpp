@@ -205,16 +205,7 @@ namespace PAG {
 
                     ImGui::Text("Tris: %zu", m->cuentaTriang());
 
-                    /** TEXTURA POR MODELO */
-                    if (m->tieneTextura()) {
-                        ImGui::Separator();
-                        ImGui::Text("Textura");
 
-                        bool usarTex = m->usaTextura();
-                        if (ImGui::Checkbox("Usar textura", &usarTex)) {
-                            m->setUsarTextura(usarTex);
-                        }
-                    }
 
                     ///MATERIALES
                     ImGui::Separator();
@@ -226,7 +217,48 @@ namespace PAG {
                     ImGui::ColorEdit3("Ks (Especular)",(float*)&mat.Ks);
                     ImGui::SliderFloat("brillo", &mat.brillo, 1.0f, 128.0f);
 
+
+                    /// TEXTURA
+                    ImGui::Separator();
+                    ImGui::Text("Textura");
+
+                    if (!m->tieneTextura()) {
+
+                        if (ImGui::Button("Cargar textura")) {
+
+                            // Obtener nombre del modelo (ej: "vaca.obj")
+                            std::string nombre = m->nombre();
+
+                            // Quitar extensión ".obj"
+                            size_t pos = nombre.find_last_of('.');
+                            if (pos != std::string::npos)
+                                nombre = nombre.substr(0, pos);
+
+                            // Construir ruta: texturas/vaca.png
+                            std::string rutaTex = "texturas/" + nombre + ".png";
+
+                            try {
+                                m->asignarTextura(rutaTex);
+                                renderer.addMensaje("Textura cargada: " + rutaTex);
+                            }
+                            catch (const std::exception& e) {
+                                renderer.addMensaje(
+                                        std::string("Error cargando textura: ") + e.what()
+                                );
+                            }
+                        }
+
+                    } else {
+
+                        bool usar = m->usaTextura();
+                        if (ImGui::Checkbox("Usar textura", &usar)) {
+                            m->setUsarTextura(usar);
+                        }
+                    }
+
                 }
+
+
 
 
             } else {

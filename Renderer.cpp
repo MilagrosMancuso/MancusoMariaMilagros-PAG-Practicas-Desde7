@@ -400,11 +400,11 @@ namespace PAG {
             glUniform1f (glGetUniformLocation(idSP, "uShininess"), mat.brillo);
 
             // TEXTURA
-            GLint locSampler = glGetUniformLocation(idSP, "muestreador");
-            if (locSampler >= 0)
-                glUniform1i(locSampler, 0);
+            glUniform1i(
+                    glGetUniformLocation(idSP, "uUsarTextura"),m->usaTextura() ? 1 : 0);
 
-            if (m->usaTextura()) {
+            // ACTIVAR TEXTURA
+            if (m->usaTextura() && m->tieneTextura()) {
                 m->getTextura().activar(0);
             }
 
@@ -420,10 +420,12 @@ namespace PAG {
         return static_cast<int>(_luces.size()) - 1;
     }
 
+
     void Renderer::removeLuz(int index) {
         if (index < 0 || index >= static_cast<int>(_luces.size())) return;
         _luces.erase(_luces.begin() + index);
     }
+
 
     void Renderer::refrescar() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -460,6 +462,7 @@ namespace PAG {
                 hayLuces = true;
             }
         }
+
         // Si no hay luces, poner un mínimo para que se vea algo (la vaca gris)
         if(!hayLuces) ambienteTotal = glm::vec3(0.2f);
 
