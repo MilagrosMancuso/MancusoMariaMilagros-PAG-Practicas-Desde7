@@ -280,38 +280,8 @@ namespace PAG {
     }
 
     void Renderer::fetchSubroutines() {
-        /*
-        // Localizar el uniform de subrutinas
-        locSubroutine = glGetSubroutineUniformLocation(
-                idSP,
-                GL_FRAGMENT_SHADER,
-                "uMetodoColor"
-        );
 
-        if (locSubroutine < 0)
-            addMensaje("ADVERTENCIA: No se encontró uMetodoColor.");
-
-        // Subrutina modo alambre
-        idxModoAlambre = glGetSubroutineIndex(
-                idSP,
-                GL_FRAGMENT_SHADER,
-                "modoAlambre"
-        );
-
-        if (idxModoAlambre == GL_INVALID_INDEX)
-            addMensaje("ERROR: No se encontró subrutina modoAlambre.");
-
-        // Subrutina modo sólido
-        idxModoSolido = glGetSubroutineIndex(
-                idSP,
-                GL_FRAGMENT_SHADER,
-                "modoSolido"
-        );
-
-        if (idxModoSolido == GL_INVALID_INDEX)
-            addMensaje("ERROR: No se encontró subrutina modoSolido.");
-            */
-        if (idSP == 0) return;
+       /* if (idSP == 0) return;
 
         // Buscamos la variable uniforme de subrutina "uMetodoLuz"
         locMetodoLuz = glGetSubroutineUniformLocation(idSP, GL_FRAGMENT_SHADER, "uMetodoLuz");
@@ -319,8 +289,44 @@ namespace PAG {
         if (locMetodoLuz < 0) {
             addMensaje("AVISO: No se encontró la subrutina uniforme 'uMetodoLuz' en el Fragment Shader.");
         }
+*/
+        if (idSP == 0) return;
+
+        //  EL TAMAÑO DEL VECTOR: cuántas subrutinas uniformes tiene el shader ( Luz y Color)
+        GLint tam = 0;
+        glGetProgramStageiv(idSP, GL_FRAGMENT_SHADER, GL_ACTIVE_SUBROUTINE_UNIFORMS, &tam);
+        _numSubrutinasActivas = tam;
+
+        // LOCALIZAR LOS UNIFORMS
+
+        // Selector de Color
+        locMetodoColor = glGetSubroutineUniformLocation(idSP, GL_FRAGMENT_SHADER, "uMetodoColor");
+        if (locMetodoColor == -1) {
+            addMensaje("Error: No se encontró el uniform de subrutina 'uMetodoColor'");
+        }
+
+        // Selector de Luz
+        locMetodoLuz = glGetSubroutineUniformLocation(idSP, GL_FRAGMENT_SHADER, "uMetodoLuz");
+        if (locMetodoLuz == -1) {
+            addMensaje("Error: No se encontró el uniform de subrutina 'uMetodoLuz'");
+        }
+
+        // LOCALIZAR LAS IMPLEMENTACIONES
+
+        //  Colores
+        idxColorMaterial = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "ColorMaterial");
+        idxColorTextura  = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "ColorTextura");
+
+        //  Luces
+        idxLuzAmbiente    = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "LuzAmbiente");
+        idxLuzPuntual     = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "LuzPuntual");
+        idxLuzDireccional    = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "LuzDireccional");
+        idxLuzSpot     = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "LuzSpot");
 
 
+        if (idxColorTextura == GL_INVALID_INDEX) {
+            addMensaje("Error: No se encontró la función 'ColorTextura' en el shader");
+        }
     }
 
 
@@ -383,32 +389,50 @@ namespace PAG {
         return _modelos[idx].get();
     }
 
-    void Renderer::dibujaModelos() {
+    void Renderer::dibujaModelos(GLuint idxSubrutinaLuz) {
+
+        // Si no hay subrutinas activas
+        if (_numSubrutinasActivas <= 0) return;
+
+        // Vector para la configuración. Debe tener el tamaño de las subrutinas activas
+        std::vector<GLuint> configuracion(_numSubrutinasActivas);
 
         for (auto& m : _modelos) {
             if (!m) continue;
 
-            // Enviar matriz modelo
+            //  MATRICES Y MATERIALES
             if (uModelLoc >= 0)
-            glUniformMatrix4fv(uModelLoc, 1, GL_FALSE, glm::value_ptr(m->modelaMatrix()));
+                glUniformMatrix4fv(uModelLoc, 1, GL_FALSE, glm::value_ptr(m->modelaMatrix()));
 
-            // Enviar Material
             const Material& mat = m->getMaterial();
             glUniform3fv(glGetUniformLocation(idSP, "uKa"), 1, &mat.Ka[0]);
             glUniform3fv(glGetUniformLocation(idSP, "uKd"), 1, &mat.Kd[0]);
             glUniform3fv(glGetUniformLocation(idSP, "uKs"), 1, &mat.Ks[0]);
             glUniform1f (glGetUniformLocation(idSP, "uShininess"), mat.brillo);
 
-            // TEXTURA
-            glUniform1i(
-                    glGetUniformLocation(idSP, "uUsarTextura"),m->usaTextura() ? 1 : 0);
+            //  CONFIGURACIÓN DE SUBRUTINAS
 
-            // ACTIVAR TEXTURA
-            if (m->usaTextura() && m->tieneTextura()) {
-                m->getTextura().activar(0);
+            // LUZ: Usamos el que nos pasan por parámetro
+            if (locMetodoLuz != -1 && locMetodoLuz < _numSubrutinasActivas) {
+                configuracion[locMetodoLuz] = idxSubrutinaLuz;
             }
 
-            // Renderizar
+            // COLOR: Depende de si el modelo tiene textura
+            if (locMetodoColor != -1 && locMetodoColor < _numSubrutinasActivas) {
+                if (m->usaTextura()) {
+                    // Si tiene textura, activamos la unidad 0 y elegimos la función de textura
+                    m->getTextura().activar(0);
+                    configuracion[locMetodoColor] = idxColorTextura;
+                } else {
+                    // Si no, usamos el color sólido
+                    configuracion[locMetodoColor] = idxColorMaterial;
+                }
+            }
+
+            // ENVIAMOS AL SHADER
+            glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, _numSubrutinasActivas, configuracion.data());
+
+            // DIBUJAR
             m->dibuja();
         }
     }
@@ -429,61 +453,57 @@ namespace PAG {
 
     void Renderer::refrescar() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         if (idSP == 0) return;
 
         glUseProgram(idSP);
-        fetchUniforms();
-        fetchSubroutines();
 
+        // Matrices Globales
         glm::mat4 view = cam.matrizVision();
         glm::mat4 proj = cam.matrizProyeccion();
-
         if (uViewLoc >= 0) glUniformMatrix4fv(uViewLoc, 1, GL_FALSE, glm::value_ptr(view));
         if (uProjLoc >= 0) glUniformMatrix4fv(uProjLoc, 1, GL_FALSE, glm::value_ptr(proj));
 
+        // Textura: Aseguramos que el sampler use la unidad 0
+        glUniform1i(glGetUniformLocation(idSP, "muestreador"), 0);
 
-        //primer pasada
+
+        // PASADA 1 LUZ AMBIENTE (Base)
         glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Sumar color luz al color base
-        glDepthFunc(GL_LEQUAL);      // Dibujar sobre la misma superficie
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthFunc(GL_LEQUAL);
 
         // Seleccionar subrutina LuzAmbiente
         GLuint subAmbiente = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "LuzAmbiente");
         glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &subAmbiente);
 
-        // Calcular ambiente total (suma de todas las luces ambiente activas o un valor base)
-        glm::vec3 ambienteTotal(0.0);
+        // Calcular ambiente total
+        glm::vec3 ambienteTotal(0.0f);
         bool hayLuces = false;
-
         for(const auto& L : _luces) {
             if(L.props.activa) {
                 ambienteTotal += L.props.Ia;
                 hayLuces = true;
             }
         }
-
-        // Si no hay luces, poner un mínimo para que se vea algo (la vaca gris)
         if(!hayLuces) ambienteTotal = glm::vec3(0.2f);
 
         glUniform3fv(glGetUniformLocation(idSP, "uAmbiente_Ia"), 1, glm::value_ptr(ambienteTotal));
 
-        dibujaModelos(); // Dibujar pasada base
+        // DIBUJAR CON SUBRUTINA AMBIENTE
+        dibujaModelos(idxLuzAmbiente);
 
-        // Renderizar LUCES ACTIVAS
-        glBlendFunc ( GL_SRC_ALPHA, GL_ONE );
+
+        // PASADA 2 LUCES ACTIVAS
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
         for (const Light& L : _luces) {
             if (!L.props.activa) continue;
 
-            std::string tipo = L.nombreEstrategia();
+            // L.aplica envía los uniforms de posición/color y nos devuelve QUÉ tipo de luz es
+            GLuint idxLuzActual = L.aplica(idSP, view);
 
-            if (tipo == "Ambiente") continue;
-
-            L.aplica(idSP, view);
-
-            dibujaModelos(); // Dibujar
+            // DIBUJAR CON LA SUBRUTINA DE ESTA LUZ ESPECÍFICA
+            dibujaModelos(idxLuzActual);
         }
-
     }
 }

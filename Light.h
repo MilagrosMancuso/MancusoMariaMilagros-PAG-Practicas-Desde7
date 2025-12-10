@@ -31,7 +31,7 @@ namespace PAG {
             aplic = std::move(a);
         }
 
-        void aplica(GLuint program, const glm::mat4& V) const;
+        GLuint aplica(GLuint program, const glm::mat4& V) const;
     };
 }
 

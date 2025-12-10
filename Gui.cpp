@@ -260,7 +260,6 @@ namespace PAG {
 
 
 
-
             } else {
                 ImGui::TextUnformatted("No hay modelos cargados.");
             }

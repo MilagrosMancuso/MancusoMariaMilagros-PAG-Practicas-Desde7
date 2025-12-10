@@ -38,9 +38,6 @@ namespace PAG {
         GLint uProjLoc = -1;
         glm::mat4 model = glm::mat4(1);
 
-        // Uniforms de subrutinas
-        GLint locMetodoLuz = -1;
-
         Camara cam; //para tenerla en el renderer
 
         void fetchUniforms();
@@ -56,6 +53,21 @@ namespace PAG {
 
         // Luces
         std::vector<Light> _luces;
+
+        // Uniforms de subrutinas
+        GLint locMetodoLuz = -1;
+        GLint locMetodoColor = -1;
+
+        GLuint idxLuzAmbiente = 0;
+        GLuint idxLuzPuntual = 0;
+        GLuint idxLuzDireccional = 0;
+        GLuint idxLuzSpot = 0;
+        GLuint idxColorMaterial = 0;
+        GLuint idxColorTextura = 0;
+
+        // Cantidad total de subrutinas activas en el shader
+        GLint _numSubrutinasActivas = 0;
+
 
 
     public:
@@ -121,7 +133,7 @@ namespace PAG {
         void removeLuz(int index);
 
         // enviar uModel (por modelo) y dibujar todos
-        void dibujaModelos();
+        void dibujaModelos(GLuint idxSubrutinaLuz);
 
         void fetchSubroutines();
     };

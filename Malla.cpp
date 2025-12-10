@@ -50,40 +50,25 @@ void Malla::construir(const std::vector<Vertice>& vertices,
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-    // VBO: posiciones + normales entrelazadas + uv entrelazados
-    glGenBuffers(1, &vboVO);
-    glBindBuffer(GL_ARRAY_BUFFER, vboVO);
-    glBufferData(GL_ARRAY_BUFFER,
-                 vertices.size() * sizeof(Vertice),
-                 vertices.data(),
-                 GL_STATIC_DRAW);
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertice), vertices.data(), GL_STATIC_DRAW);
 
-    // IBO: índices
     glGenBuffers(1, &ibo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 indices.size() * sizeof(unsigned),
-                 indices.data(),
-                 GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned), indices.data(), GL_STATIC_DRAW);
 
-    // Atributo 0  posición
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(Vertice),
-                          (void*)offsetof(Vertice, pos));
+    // Atributo 0: Posición
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void*)offsetof(Vertice, pos));
     glEnableVertexAttribArray(0);
 
-    // Atributo 1  normal
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(Vertice),
-                          (void*)offsetof(Vertice, normal));
+    // Atributo 1: Normal
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void*)offsetof(Vertice, normal));
     glEnableVertexAttribArray(1);
 
-    //Atributo 2 cordenadas uv
-    glVertexAttribPointer(2,2,GL_FLOAT,GL_FALSE,
-            sizeof(Vertice),
-            (void*)offsetof(Vertice, uv));
+    // Atributo 2: Coordenadas de Textura
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void*)offsetof(Vertice, texCoord));
     glEnableVertexAttribArray(2);
-
 
     glBindVertexArray(0);
 }

@@ -1,22 +1,27 @@
-#version 410
+#version 410 core
 
-layout (location = 0) in vec3 posicion;   // Atributo 0
-layout (location = 1) in vec3 normal;     // Atributo 1
-layout (location = 2) in vec2 cTextura;   // Atributo 2
+layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aNorm;
+layout (location = 2) in vec2 aTexCoord;
+
+out vec3 vPosVS;
+out vec3 vNormVS;
+out vec2 vTexCoord;
 
 uniform mat4 uModel;
 uniform mat4 uView;
 uniform mat4 uProj;
 
-out vec3 vPosWorld;
-out vec3 vNormalWorld;
-out vec2 vUV;
-
-void main ()
+void main()
 {
-    vec4 posWorld = uModel * vec4(posicion, 1.0);
-    vPosWorld = posWorld.xyz;
-    vNormalWorld = mat3(transpose(inverse(uModel))) * normal;
-    vUV = cTextura;
-    gl_Position = uProj * uView * posWorld;
+
+    vec4 posViewSpace = uView * uModel * vec4(aPos, 1.0);
+    vPosVS = posViewSpace.xyz;
+
+    mat4 normalMatrix = transpose(inverse(uView * uModel));
+    vNormVS = normalize(normalMatrix * vec4(aNorm, 0.0)).xyz;
+
+    vTexCoord = aTexCoord;
+
+    gl_Position = uProj * posViewSpace;
 }

@@ -37,6 +37,13 @@ namespace PAG {
                 v.normal = {0, 0, 1};
             }
 
+            // TEXTURAS
+            if(mesh->HasTextureCoords(0)) {
+                v.texCoord = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
+            } else {
+                v.texCoord = { 0.0f, 0.0f };
+            }
+
             vertices.push_back(v);
         }
 

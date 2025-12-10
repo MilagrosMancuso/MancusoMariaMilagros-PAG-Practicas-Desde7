@@ -6,7 +6,7 @@
 
 namespace PAG {
 
-    void Light::aplica(GLuint program, const glm::mat4& V) const
+    GLuint Light::aplica(GLuint program, const glm::mat4& V) const
     {
 
         // Transformación a espacio de vista
@@ -40,7 +40,8 @@ namespace PAG {
         GLuint idx = aplic->getSubroutineIndex(program);
 
         // Carga de subrutina al pipeline ( 1 por pasada)
-        glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &idx);
+        //glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &idx);
+        return idx;
     }
 
 }

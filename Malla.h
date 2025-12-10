@@ -19,16 +19,14 @@
 struct Vertice {
     glm::vec3 pos;
     glm::vec3 normal;
-    glm::vec2 uv;
+    glm::vec2 texCoord;
 };
 
 class Malla{
     private:
         GLuint vao = 0;
-        GLuint vbo = 0;  // posiciones + normales
+        GLuint vbo = 0;
         GLuint ibo = 0;
-
-        GLuint vboVO = 0; // coordenadas de textura
 
         GLsizei cuentaIndices = 0;
 
