@@ -50,9 +50,9 @@ void Malla::construir(const std::vector<Vertice>& vertices,
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-    // VBO: posiciones + normales entrelazadas
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    // VBO: posiciones + normales entrelazadas + uv entrelazados
+    glGenBuffers(1, &vboVO);
+    glBindBuffer(GL_ARRAY_BUFFER, vboVO);
     glBufferData(GL_ARRAY_BUFFER,
                  vertices.size() * sizeof(Vertice),
                  vertices.data(),
@@ -77,6 +77,13 @@ void Malla::construir(const std::vector<Vertice>& vertices,
                           sizeof(Vertice),
                           (void*)offsetof(Vertice, normal));
     glEnableVertexAttribArray(1);
+
+    //Atributo 2 cordenadas uv
+    glVertexAttribPointer(2,2,GL_FLOAT,GL_FALSE,
+            sizeof(Vertice),
+            (void*)offsetof(Vertice, uv));
+    glEnableVertexAttribArray(2);
+
 
     glBindVertexArray(0);
 }

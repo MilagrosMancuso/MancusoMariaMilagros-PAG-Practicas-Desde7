@@ -47,7 +47,7 @@ namespace PAG {
         auto& renderer = Renderer::getInstancia();
         auto& cam = renderer.getCamara();
 
-        ///VENTANA SHADERS
+        /** VENTANA SHADERS */
         ImGui::Begin("Shaders");
 
         // Campo de texto: usa std::string* + imgui_stdlib.h para evitar error
@@ -71,7 +71,7 @@ namespace PAG {
 
         ImGui::End();
 
-        ///VENTANA MODELOS
+        /** VENTANA MODELOS */
 
         if (ImGui::Begin("Modelos", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             static char ruta[512] = "";
@@ -95,7 +95,8 @@ namespace PAG {
 
             ImGui::Separator();
 
-            //predefinir algunos modelos para que sea mas rapido
+            /** PREDEFINICION DE MODELOS */
+
             ImGui::Text("Cargar modelo rápido:");
 
             static const char* modelosPre[] = {
@@ -124,7 +125,8 @@ namespace PAG {
 
             ImGui::Separator();
 
-            //los modelos
+            /** LISTA DE MODELOS */
+
             auto n_modelo = renderer.listaNombreModelo();
 
             if (!n_modelo.empty()) {
@@ -146,7 +148,7 @@ namespace PAG {
                     ImGui::EndCombo();
                 }
 
-                //para borrar un modelo
+               /** BORRAR UN MODELO */
                 ImGui::SameLine();
                 if (ImGui::Button("Eliminar")) {
                     renderer.removeModel(selec);
@@ -163,8 +165,7 @@ namespace PAG {
                 ImGui::Separator();
 
 
-
-                //transformaciones en modelos
+                /** MODELO SELECCIONADO */
                 Modelo *m = renderer.getModelo(selec);
 
                 if (m) {
@@ -204,6 +205,16 @@ namespace PAG {
 
                     ImGui::Text("Tris: %zu", m->cuentaTriang());
 
+                    /** TEXTURA POR MODELO */
+                    if (m->tieneTextura()) {
+                        ImGui::Separator();
+                        ImGui::Text("Textura");
+
+                        bool usarTex = m->usaTextura();
+                        if (ImGui::Checkbox("Usar textura", &usarTex)) {
+                            m->setUsarTextura(usarTex);
+                        }
+                    }
 
                     ///MATERIALES
                     ImGui::Separator();

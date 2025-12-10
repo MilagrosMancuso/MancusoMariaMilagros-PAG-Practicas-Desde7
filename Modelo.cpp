@@ -114,4 +114,15 @@ namespace PAG {
             total += m.getCuentaIndices() / 3;
         return total;
     }
+
+
+    /**
+     * SET Para una textura
+     */
+    void Modelo::asignarTextura(const std::string& rutaPNG)
+    {
+        _textura = std::make_unique<Textura>();
+        _textura->carga(rutaPNG);
+        _usarTextura = true;
+    }
 }

@@ -16,6 +16,7 @@
 
 #include "Malla.h"
 #include "Material.h"
+#include "Textura.h"
 
 
 namespace PAG{
@@ -34,6 +35,9 @@ namespace PAG{
         Malla procesaMalla(const aiMesh* m);
 
         Material material;
+
+        std::unique_ptr<Textura> _textura;
+        bool _usarTextura = false;
 
     public:
         Modelo() = default;
@@ -74,6 +78,13 @@ namespace PAG{
         const Material& getMaterial() const { return material; }
 
 
+        // Para la textura
+        void asignarTextura(const std::string& rutaPNG);
+
+        bool tieneTextura() const { return _textura != nullptr; }
+        bool usaTextura() const { return _usarTextura && _textura; }
+        void setUsarTextura(bool v) { _usarTextura = v; }
+        const Textura& getTextura() const { return *_textura; }
     };
 }
 

@@ -33,6 +33,10 @@ add_executable( ${PROJECT_NAME} ${MY_FILES}
         SpotLightApplicator.h
         SpotLightApplicator.cpp
         Light.cpp
+        Textura.h
+        Textura.cpp
+        lodepng.cpp
+        lodepng.h
 )
 
 # Indica directorios (adicionales a los por defecto) para buscar includes

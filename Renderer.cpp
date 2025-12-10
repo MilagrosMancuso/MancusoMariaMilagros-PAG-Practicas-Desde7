@@ -319,6 +319,8 @@ namespace PAG {
         if (locMetodoLuz < 0) {
             addMensaje("AVISO: No se encontró la subrutina uniforme 'uMetodoLuz' en el Fragment Shader.");
         }
+
+
     }
 
 
@@ -337,6 +339,18 @@ namespace PAG {
         try {
             auto m = std::make_unique<Modelo>();
             m->loadOBJ(path, smoothNormals);
+
+            //Asignacion de texturas. el requisito es que la textura se llame igual que el modelo, entonces no hay error al asignarlas
+            if (path.find("vaca") != std::string::npos) {
+                m->asignarTextura("texturas/vaca.png");
+            }
+            else if (path.find("trex") != std::string::npos) {
+                m->asignarTextura("texturas/t-rex.png");
+            }
+            else if (path.find("dado") != std::string::npos) {
+                m->asignarTextura("texturas/dado.png");
+            }
+
             addMensaje("Cargado OBJ: " + path + " (" + std::to_string(m->cuentaTriang()) + " triangulos)");
             _modelos.push_back(std::move(m));
             return (int) _modelos.size() - 1;
@@ -385,6 +399,15 @@ namespace PAG {
             glUniform3fv(glGetUniformLocation(idSP, "uKs"), 1, &mat.Ks[0]);
             glUniform1f (glGetUniformLocation(idSP, "uShininess"), mat.brillo);
 
+            // TEXTURA
+            GLint locSampler = glGetUniformLocation(idSP, "muestreador");
+            if (locSampler >= 0)
+                glUniform1i(locSampler, 0);
+
+            if (m->usaTextura()) {
+                m->getTextura().activar(0);
+            }
+
             // Renderizar
             m->dibuja();
         }
@@ -413,9 +436,12 @@ namespace PAG {
 
         glm::mat4 view = cam.matrizVision();
         glm::mat4 proj = cam.matrizProyeccion();
+
         if (uViewLoc >= 0) glUniformMatrix4fv(uViewLoc, 1, GL_FALSE, glm::value_ptr(view));
         if (uProjLoc >= 0) glUniformMatrix4fv(uProjLoc, 1, GL_FALSE, glm::value_ptr(proj));
 
+
+        //primer pasada
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Sumar color luz al color base
         glDepthFunc(GL_LEQUAL);      // Dibujar sobre la misma superficie
@@ -427,6 +453,7 @@ namespace PAG {
         // Calcular ambiente total (suma de todas las luces ambiente activas o un valor base)
         glm::vec3 ambienteTotal(0.0);
         bool hayLuces = false;
+
         for(const auto& L : _luces) {
             if(L.props.activa) {
                 ambienteTotal += L.props.Ia;
