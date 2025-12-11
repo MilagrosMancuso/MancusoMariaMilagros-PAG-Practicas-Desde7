@@ -266,7 +266,7 @@ namespace PAG {
         }
         ImGui::End();
 
-        ///VENTANA DE CAMARA
+        ///VENTANA DE CAMARA.
 
         if (ImGui::Begin("Camara", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::SetWindowFontScale(1.0f); // Cambia a 2.0f para letra doble si quieres
