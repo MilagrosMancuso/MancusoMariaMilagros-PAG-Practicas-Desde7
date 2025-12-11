@@ -13,6 +13,8 @@
 #include "DirectionalLightApplicator.h"
 #include "SpotLightApplicator.h"
 
+#define _MYGUI_TEXT_SCALE_ 1
+
 namespace PAG {
     GUI* GUI::instancia = nullptr;
 
@@ -49,6 +51,7 @@ namespace PAG {
 
         /** VENTANA SHADERS */
         ImGui::Begin("Shaders");
+        ImGui::SetWindowFontScale ( _MYGUI_TEXT_SCALE_ );
 
         // Campo de texto: usa std::string* + imgui_stdlib.h para evitar error
         ImGui::InputText("Base name##shader", _baseName, ImGuiInputTextFlags_AutoSelectAll);
@@ -72,8 +75,8 @@ namespace PAG {
         ImGui::End();
 
         /** VENTANA MODELOS */
-
-        if (ImGui::Begin("Modelos", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (ImGui::Begin("modelos", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::SetWindowFontScale ( _MYGUI_TEXT_SCALE_ );
             static char ruta[512] = "";
             static bool suavizaNormales = true;           // flag normales (NO OLVIDARSE DE NORMALES)
             static int selec = renderer.getModeloSeleccionado();
@@ -267,9 +270,8 @@ namespace PAG {
         ImGui::End();
 
         ///VENTANA DE CAMARA.
-
         if (ImGui::Begin("Camara", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::SetWindowFontScale(1.0f); // Cambia a 2.0f para letra doble si quieres
+        ImGui::SetWindowFontScale ( _MYGUI_TEXT_SCALE_ );
 
             static int active = 6;
             const char* items =
@@ -380,11 +382,13 @@ namespace PAG {
 
         /// VENTANA LOG
             ImGui::Begin("Log");
+        ImGui::SetWindowFontScale ( _MYGUI_TEXT_SCALE_ );
         ImGui::Checkbox("Auto-scroll", &_autoLog);
         ImGui::Separator();
 
         const auto& mensajes = renderer.getMensaje();
         ImGui::BeginChild("LogRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
+        ImGui::SetWindowFontScale ( _MYGUI_TEXT_SCALE_ );
         for (const auto& m : mensajes) {
             ImGui::TextUnformatted(m.c_str());
         }
@@ -398,6 +402,7 @@ namespace PAG {
         /// VENTANA LUCES
 
         if (ImGui::Begin("Luces", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::SetWindowFontScale ( _MYGUI_TEXT_SCALE_ );
             auto& luces = renderer.getLuces();
 
             // Botones para añadir luces de diferentes tipos

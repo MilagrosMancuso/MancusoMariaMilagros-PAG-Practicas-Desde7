@@ -47,8 +47,8 @@ void key_callback ( GLFWwindow *window, int key, int scancode, int action, int m
     if ( key == GLFW_KEY_ESCAPE && action == GLFW_PRESS ){
         glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
-    PAG::Renderer::getInstancia().addMensaje(
-            "Key callback called" );
+   // PAG::Renderer::getInstancia().addMensaje(
+   //         "Key callback called" );
 }
 
 // Cada vez que se pulse algún botón del ratón sobre el área de dibujo OpenGL.

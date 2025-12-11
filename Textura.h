@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+#include "lodepng.h"
+
 namespace PAG {
 
     class Textura {
@@ -16,7 +18,8 @@ namespace PAG {
         unsigned _ancho = 0;
         unsigned _alto = 0;
 
-        std::vector<unsigned char> _pixels;
+        std::vector<unsigned char> _imagen;
+
 
     public:
         Textura() = default;

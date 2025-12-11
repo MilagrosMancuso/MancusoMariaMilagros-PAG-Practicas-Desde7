@@ -47,7 +47,7 @@ namespace PAG {
         std::string loadShader(const std::string& filename);
         void checkCompilaError(GLuint shader, std::string type);
 
-        // Modelos
+        // modelos
         std::vector<std::unique_ptr<Modelo>> _modelos;
         int _modeloSelec = -1; // seleccionado en GUI
 

@@ -4,6 +4,7 @@
 
 #include "Renderer.h"
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
@@ -106,7 +107,7 @@ namespace PAG {
         /**
          * OPCIONAL CON VBO NO ENTRELAZADOS
          */
-        /* GLfloat vertices[] = {-0.5, -0.5, 0,
+         GLfloat vertices[] = {-0.5, -0.5, 0,
                                0.5, -0.5, 0,
                                0, 0.5, 0};
 
@@ -141,11 +142,12 @@ namespace PAG {
          glGenBuffers(1, &idIBO);
          glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, idIBO);
          glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-         */
+
 
         /**
          * OPCIONAL CON VBO ENTRELAZADOS
          */
+        /*
         GLfloat vertices[] = {
                 // posiciones                    // colores
                 -0.5, -0.5, 0, 0, 1.0, 0.5,
@@ -172,7 +174,7 @@ namespace PAG {
         glGenBuffers(1, &idIBO);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, idIBO);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
+*/
     }
 
 
@@ -204,7 +206,7 @@ namespace PAG {
 
     void Renderer::creaShaderProgram() {
         // por compatibilidad cargamos el shader por defecto "pag08"
-        loadShaderProgramFromBase("pag08");
+        loadShaderProgramFromBase("pag09");
     }
 
 
@@ -301,32 +303,33 @@ namespace PAG {
 
         // Selector de Color
         locMetodoColor = glGetSubroutineUniformLocation(idSP, GL_FRAGMENT_SHADER, "uMetodoColor");
-        if (locMetodoColor == -1) {
+
+        if (locMetodoColor < 0) {
             addMensaje("Error: No se encontró el uniform de subrutina 'uMetodoColor'");
         }
 
         // Selector de Luz
         locMetodoLuz = glGetSubroutineUniformLocation(idSP, GL_FRAGMENT_SHADER, "uMetodoLuz");
-        if (locMetodoLuz == -1) {
+
+        if (locMetodoLuz < 0) {
             addMensaje("Error: No se encontró el uniform de subrutina 'uMetodoLuz'");
         }
 
         // LOCALIZAR LAS IMPLEMENTACIONES
-
         //  Colores
         idxColorMaterial = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "ColorMaterial");
         idxColorTextura  = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "ColorTextura");
 
         //  Luces
-        idxLuzAmbiente    = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "LuzAmbiente");
-        idxLuzPuntual     = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "LuzPuntual");
-        idxLuzDireccional    = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "LuzDireccional");
-        idxLuzSpot     = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "LuzSpot");
-
+        idxLuzAmbiente    = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "luzAmbiente");
+        idxLuzPuntual     = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "luzPuntual");
+        idxLuzDireccional    = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "luzDireccional");
+        idxLuzSpot     = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "luzFoco");
 
         if (idxColorTextura == GL_INVALID_INDEX) {
             addMensaje("Error: No se encontró la función 'ColorTextura' en el shader");
         }
+
     }
 
 
@@ -347,14 +350,18 @@ namespace PAG {
             m->loadOBJ(path, smoothNormals);
 
             //Asignacion de texturas. el requisito es que la textura se llame igual que el modelo, entonces no hay error al asignarlas
-            if (path.find("vaca") != std::string::npos) {
-                m->asignarTextura("texturas/vaca.png");
-            }
-            else if (path.find("trex") != std::string::npos) {
-                m->asignarTextura("texturas/t-rex.png");
-            }
-            else if (path.find("dado") != std::string::npos) {
-                m->asignarTextura("texturas/dado.png");
+            try {
+                if (path.find("vaca") != std::string::npos) {
+                    m->asignarTextura("./texturas/vaca.png");
+                }
+                else if (path.find("t-rex") != std::string::npos) {
+                    m->asignarTextura("./texturas/t-rex.png");
+                }
+                else if (path.find("dado") != std::string::npos) {
+                    m->asignarTextura("./texturas/dado.png");
+                }
+            }catch (const std::exception& eTex) {
+                addMensaje(std::string("Error cargando textura: ") + eTex.what());
             }
 
             addMensaje("Cargado OBJ: " + path + " (" + std::to_string(m->cuentaTriang()) + " triangulos)");
@@ -390,10 +397,6 @@ namespace PAG {
     }
 
     void Renderer::dibujaModelos(GLuint idxSubrutinaLuz) {
-
-        // Si no hay subrutinas activas
-        if (_numSubrutinasActivas <= 0) return;
-
         // Vector para la configuración. Debe tener el tamaño de las subrutinas activas
         std::vector<GLuint> configuracion(_numSubrutinasActivas);
 
@@ -401,8 +404,8 @@ namespace PAG {
             if (!m) continue;
 
             //  MATRICES Y MATERIALES
-            if (uModelLoc >= 0)
-                glUniformMatrix4fv(uModelLoc, 1, GL_FALSE, glm::value_ptr(m->modelaMatrix()));
+
+            glUniformMatrix4fv(uModelLoc, 1, GL_FALSE, glm::value_ptr(m->modelaMatrix()));
 
             const Material& mat = m->getMaterial();
             glUniform3fv(glGetUniformLocation(idSP, "uKa"), 1, &mat.Ka[0]);
@@ -411,23 +414,20 @@ namespace PAG {
             glUniform1f (glGetUniformLocation(idSP, "uShininess"), mat.brillo);
 
             //  CONFIGURACIÓN DE SUBRUTINAS
-
             // LUZ: Usamos el que nos pasan por parámetro
-            if (locMetodoLuz != -1 && locMetodoLuz < _numSubrutinasActivas) {
-                configuracion[locMetodoLuz] = idxSubrutinaLuz;
-            }
+            configuracion[locMetodoLuz] = idxSubrutinaLuz;
+
 
             // COLOR: Depende de si el modelo tiene textura
-            if (locMetodoColor != -1 && locMetodoColor < _numSubrutinasActivas) {
-                if (m->usaTextura()) {
+            if (m->usaTextura()) {
                     // Si tiene textura, activamos la unidad 0 y elegimos la función de textura
                     m->getTextura().activar(0);
                     configuracion[locMetodoColor] = idxColorTextura;
-                } else {
+            } else {
                     // Si no, usamos el color sólido
                     configuracion[locMetodoColor] = idxColorMaterial;
-                }
             }
+
 
             // ENVIAMOS AL SHADER
             glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, _numSubrutinasActivas, configuracion.data());
@@ -456,6 +456,8 @@ namespace PAG {
         if (idSP == 0) return;
 
         glUseProgram(idSP);
+        // fetchUniforms();
+        // fetchSubroutines();
 
         // Matrices Globales
         glm::mat4 view = cam.matrizVision();
@@ -473,8 +475,8 @@ namespace PAG {
         glDepthFunc(GL_LEQUAL);
 
         // Seleccionar subrutina LuzAmbiente
-        GLuint subAmbiente = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "LuzAmbiente");
-        glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &subAmbiente);
+        // GLuint subAmbiente = idxLuzAmbiente;
+        // glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &subAmbiente);
 
         // Calcular ambiente total
         glm::vec3 ambienteTotal(0.0f);
@@ -491,7 +493,6 @@ namespace PAG {
 
         // DIBUJAR CON SUBRUTINA AMBIENTE
         dibujaModelos(idxLuzAmbiente);
-
 
         // PASADA 2 LUCES ACTIVAS
         glBlendFunc(GL_SRC_ALPHA, GL_ONE);

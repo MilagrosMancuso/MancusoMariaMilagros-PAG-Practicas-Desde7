@@ -17,8 +17,9 @@ uniform vec3 uLight_Id;
 uniform vec3 uLight_Is;
 uniform vec3 uLight_PosVS;
 uniform vec3 uLight_DirVS;
-uniform float uSpot_cosGamma;
-uniform float uSpot_exp;
+
+uniform float uSpot_cosGamma; //es necesario?
+uniform float uSpot_exp; //es necesario?
 
 // Textura
 uniform sampler2D muestreador; // sampler

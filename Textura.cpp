@@ -16,18 +16,19 @@ Textura::~Textura()
 }
 
 void Textura::carga(const std::string& fichero) {
-    unsigned error = lodepng::decode(_pixels, _ancho, _alto, fichero);
+    unsigned error = lodepng::decode(_imagen, _ancho, _alto, fichero);
     if (error) {
         throw std::runtime_error("No se pudo cargar la textura: " + fichero);
     }
 
     // La textura se carga del revés, así que vamos a darle la vuelta
-    unsigned char *imgPtr = &_pixels[0];
+    unsigned char *imgPtr = &_imagen[0];
     int numeroDeComponentesDeColor = 4;
     int incrementoAncho = _ancho * numeroDeComponentesDeColor; // Ancho en bytes
     unsigned char* top = nullptr;
     unsigned char* bot = nullptr;
     unsigned char temp = 0;
+
     for (int i = 0; i < _alto / 2; i++){
         top = imgPtr + i * incrementoAncho;
         bot = imgPtr + (_alto - i - 1) * incrementoAncho;
@@ -51,7 +52,7 @@ void Textura::carga(const std::string& fichero) {
     // Transferimos la información de la imagen.
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
                  _ancho, _alto, 0,
-                 GL_RGBA, GL_UNSIGNED_BYTE,  _pixels.data () );
+                 GL_RGBA, GL_UNSIGNED_BYTE,  _imagen.data () );
 
     // Generar mipmaps
     glGenerateMipmap(GL_TEXTURE_2D);

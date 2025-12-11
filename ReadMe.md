@@ -473,3 +473,137 @@ Shader de fragmentos (pag08-fs.glsl):
 
 
 ![Diagrama UML](umlPAG8.png)
+
+
+# Práctica 9 – Texturas
+
+## Integración de Texturas
+
+### Carga de texturas con LodePNG
+
+Se implementó la clase `Textura`, encargada de:
+
+1. Cargar el PNG mediante `lodepng::decode`.
+2. Voltear la imagen verticalmente.
+3. Crear la textura OpenGL usando:
+    - `glTexImage2D`
+    - `glTexParameteri` 
+    - `glGenerateMipmap()`
+
+Código relevante:
+
+```cpp
+unsigned error = lodepng::decode(_imagen, _ancho, _alto, fichero);
+if (error) throw std::runtime_error("No se pudo cargar la textura");
+
+glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _ancho, _alto, 0,
+             GL_RGBA, GL_UNSIGNED_BYTE, _imagen.data());
+glGenerateMipmap(GL_TEXTURE_2D);
+
+```
+Se maneja el fallo de textura sin abortar la carga del modelo.
+
+### Incorporación de coordenadas UV a los modelos
+
+Los UV se obtienen desde Assimp:
+
+```cpp
+if(mesh->HasTextureCoords(0))
+v.texCoord = {
+mesh->mTextureCoords[0][i].x,
+mesh->mTextureCoords[0][i].y
+};
+else
+v.texCoord = {0.f, 0.f};
+```
+
+En Malla::construir() se añadieron al VAO:
+
+```cpp
+glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertice),
+(void*)offsetof(Vertice, texCoord));
+glEnableVertexAttribArray(2);
+```
+
+Ahora cada vértice almacena:
+
+- posición
+- normal
+- coordenada de textura
+
+### Activación y uso de la textura en la aplicación
+
+Cada Modelo posee una textura opcional:
+```cpp
+unique_ptr<Textura> _textura;
+bool _usarTextura;
+```
+
+Las texturas se activan así:
+```cpp
+m->getTextura().activar(0);
+```
+
+La selección del modo texturizado se gestiona mediante subrutinas GLSL.
+
+### Subrutinas en GLSL para Color y Luz
+
+En el fragment shader (pag09-fs.glsl) se definieron dos subrutinas:
+
+Subrutina de COLOR
+```cpp
+subroutine vec4 MetodoColor();
+subroutine uniform MetodoColor uMetodoColor;
+
+subroutine (MetodoColor)
+vec4 ColorMaterial() { ... }
+
+subroutine (MetodoColor)
+vec4 ColorTextura() {
+return texture(muestreador, v_TexCoord);
+}
+```
+Subrutina de LUZ
+```cpp
+subroutine vec4 MetodoLuz(vec4 baseColor);
+subroutine uniform MetodoLuz uMetodoLuz;
+
+subroutine (MetodoLuz) vec4 LuzAmbiente(vec4 c) { ... }
+subroutine (MetodoLuz) vec4 LuzPuntual(vec4 c)  { ... }
+subroutine (MetodoLuz) vec4 LuzDireccional(vec4 c) { ... }
+subroutine (MetodoLuz) vec4 LuzSpot(vec4 c) { ... }
+```
+
+En Renderer::fetchSubroutines() se obtienen sus índices:
+```cpp
+idxColorMaterial = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "ColorMaterial");
+idxColorTextura  = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "ColorTextura");
+idxLuzAmbiente   = glGetSubroutineIndex(idSP, GL_FRAGMENT_SHADER, "LuzAmbiente");
+...
+```
+
+Durante el dibujado se elige:
+```cpp
+if (m->usaTextura())
+config[locMetodoColor] = idxColorTextura;
+else
+config[locMetodoColor] = idxColorMaterial;
+
+config[locMetodoLuz] = idxLuzActual;
+
+glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, _numSubrutinasActivas, config.data());
+```
+
+### Cambios en la interfaz
+
+Se añadieron controles:
+
+- Activar/desactivar modo texturizado.
+- Cargar shaders.
+- Añadir tipos de luces.
+- Mostrar errores de carga en el log.
+
+## Diagrama UML.
+
+
+![Diagrama UML](/umlPAG9.png)
