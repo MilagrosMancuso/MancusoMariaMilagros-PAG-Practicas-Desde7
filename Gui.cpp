@@ -226,7 +226,7 @@ namespace PAG {
 
                         if (ImGui::Button("Cargar textura")) {
 
-                            // Obtener nombre del modelo (ej: "vaca.obj")
+                            // Obtener nombre del modelo
                             std::string nombre = m->nombre();
 
                             // Quitar extensión ".obj"
