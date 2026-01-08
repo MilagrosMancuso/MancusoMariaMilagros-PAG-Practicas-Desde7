@@ -8,6 +8,7 @@
 #include <sstream>
 #include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
+#include <GLFW/glfw3.h>
 
 namespace PAG {
     Renderer *PAG::Renderer::instancia = nullptr;
@@ -355,10 +356,15 @@ namespace PAG {
                     m->asignarTextura("./texturas/vaca.png");
                 }
                 else if (path.find("t-rex") != std::string::npos) {
+                    // Textura de Color
                     m->asignarTextura("./texturas/t-rex.png");
+
+                    // Mapa de Normales
+                    m->asignarMapaNormal("./Normal/t-rex-gris_normal.png");
                 }
                 else if (path.find("dado") != std::string::npos) {
                     m->asignarTextura("./texturas/dado.png");
+                    m->asignarMapaNormal("./Normal/dieHeightMap_normal.png");
                 }
             }catch (const std::exception& eTex) {
                 addMensaje(std::string("Error cargando textura: ") + eTex.what());
@@ -452,12 +458,10 @@ namespace PAG {
 
 
     void Renderer::refrescar() {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      /*  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         if (idSP == 0) return;
 
         glUseProgram(idSP);
-        // fetchUniforms();
-        // fetchSubroutines();
 
         // Matrices Globales
         glm::mat4 view = cam.matrizVision();
@@ -467,16 +471,20 @@ namespace PAG {
 
         // Textura: Aseguramos que el sampler use la unidad 0
         glUniform1i(glGetUniformLocation(idSP, "muestreador"), 0);
+        // nuevo
+        glUniform1i(glGetUniformLocation(idSP, "muestreadorNormal"), 1); // Normales
+        glUniform1i(glGetUniformLocation(idSP, "muestreadorSombra"), 2); // Sombras
+
+        // NUEVO --- CÁLCULO DE MATRIZ DE SOMBRAS ---
+        // Por ahora, usamos una matriz identidad o una de prueba para que el shader no falle
+        glm::mat4 matSombras = glm::mat4(1.0);
+        glUniformMatrix4fv(glGetUniformLocation(idSP, "uMatrizSombras"), 1, GL_FALSE, glm::value_ptr(matSombras));
 
 
         // PASADA 1 LUZ AMBIENTE (Base)
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDepthFunc(GL_LEQUAL);
-
-        // Seleccionar subrutina LuzAmbiente
-        // GLuint subAmbiente = idxLuzAmbiente;
-        // glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &subAmbiente);
 
         // Calcular ambiente total
         glm::vec3 ambienteTotal(0.0f);
@@ -499,12 +507,136 @@ namespace PAG {
 
         for (const Light& L : _luces) {
             if (!L.props.activa) continue;
-
             // L.aplica envía los uniforms de posición/color y nos devuelve QUÉ tipo de luz es
             GLuint idxLuzActual = L.aplica(idSP, view);
 
             // DIBUJAR CON LA SUBRUTINA DE ESTA LUZ ESPECÍFICA
             dibujaModelos(idxLuzActual);
         }
+
+        glDisable(GL_BLEND);
+        */
+        if (idSP == 0) return;
+
+        //  GENERAR MAPA DE SOMBRAS
+        glViewport(0, 0, 1024, 1024); // Tamaño del mapa de sombras
+        glBindFramebuffer(GL_FRAMEBUFFER, _fboSombras);
+        glClear(GL_DEPTH_BUFFER_BIT);
+
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LESS);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_FRONT); // Para evitar el shadow acne
+
+        glm::mat4 lightSpaceMatrix(1.0f);
+        if (!_luces.empty()) {
+            // Usamos Foco o Direccional
+            const auto& L = _luces[0];
+
+            // Calculamos matrices de la cámara virtual de la luz
+            glm::mat4 lightView = glm::lookAt(L.props.posicion, L.props.posicion + L.props.direccion, glm::vec3(0,1,0));
+            glm::mat4 lightProj = glm::perspective(glm::radians(L.props.aperturaGrados * 2.0f), 1.0f, 0.1f, 50.0f);
+            lightSpaceMatrix = lightProj * lightView;
+
+            glUseProgram(_idSPSombras);
+            GLint uMVPShadow = glGetUniformLocation(_idSPSombras, "matrizModVisProy");
+
+            for (auto& m : _modelos) {
+                if (!m) continue;
+                glm::mat4 mvp = lightSpaceMatrix * m->modelaMatrix();
+                glUniformMatrix4fv(uMVPShadow, 1, GL_FALSE, glm::value_ptr(mvp));
+                m->dibuja();
+            }
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glCullFace(GL_BACK);
+
+        // RENDERIZADO FINAL
+        int anchoVP, altoVP;
+        glfwGetFramebufferSize(glfwGetCurrentContext(), &anchoVP, &altoVP);
+        glViewport(0, 0, anchoVP, altoVP); // Restauramos viewport
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glDepthFunc(GL_LEQUAL);
+
+        glUseProgram(idSP);
+
+        // Matrices Globales
+        glm::mat4 view = cam.matrizVision();
+        glm::mat4 proj = cam.matrizProyeccion();
+        if (uViewLoc >= 0) glUniformMatrix4fv(uViewLoc, 1, GL_FALSE, glm::value_ptr(view));
+        if (uProjLoc >= 0) glUniformMatrix4fv(uProjLoc, 1, GL_FALSE, glm::value_ptr(proj));
+
+        // Configuración de Samplers
+        glUniform1i(glGetUniformLocation(idSP, "muestreador"), 0);       // Unidad 0: Color
+        glUniform1i(glGetUniformLocation(idSP, "muestreadorNormal"), 1); // Unidad 1: Normales
+        glUniform1i(glGetUniformLocation(idSP, "muestreadorSombra"), 2); // Unidad 2: Sombras
+
+        // Matriz de sombras escalada
+        glm::mat4 B = glm::translate(glm::mat4(1.0f), glm::vec3(0.5f));
+        B = glm::scale(B, glm::vec3(0.5f));
+        glm::mat4 matSombrasUniform = B * lightSpaceMatrix;
+        glUniformMatrix4fv(glGetUniformLocation(idSP, "uMatrizSombras"), 1, GL_FALSE, glm::value_ptr(matSombrasUniform));
+
+        // Activamos la textura de sombras generada
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, _texSombra);
+
+        // PASADA 1 LUZ AMBIENTE (Base)
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        glm::vec3 ambienteTotal(0.0f);
+        bool hayLucesActivas = false;
+        for(const auto& L : _luces) {
+            if(L.props.activa) {
+                ambienteTotal += L.props.Ia;
+                hayLucesActivas = true;
+            }
+        }
+        if(!hayLucesActivas) ambienteTotal = glm::vec3(0.2f);
+        glUniform3fv(glGetUniformLocation(idSP, "uAmbiente_Ia"), 1, glm::value_ptr(ambienteTotal));
+
+        dibujaModelos(idxLuzAmbiente);
+
+        // PASADA 2 LUCES ACTIVAS (Iluminación + Sombras)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+        for (const Light& L : _luces) {
+            if (!L.props.activa) continue;
+            GLuint idxLuzActual = L.aplica(idSP, view);
+            dibujaModelos(idxLuzActual);
+        }
+
+        glDisable(GL_BLEND);
     }
+
+
+
+    void Renderer::inicializaShadowMapping() {
+        // 1. Crear el FBO
+        glGenFramebuffers(1, &_fboSombras);
+
+        // 2. Crear textura de profundidad
+        glGenTextures(1, &_texSombra);
+        glBindTexture(GL_TEXTURE_2D, _texSombra);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+
+        // Configuración obligatoria para shadow mapping
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+
+        // 3. Vincular al FBO
+        glBindFramebuffer(GL_FRAMEBUFFER, _fboSombras);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _texSombra, 0);
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
 }

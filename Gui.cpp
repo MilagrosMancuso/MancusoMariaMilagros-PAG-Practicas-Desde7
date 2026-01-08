@@ -227,17 +227,13 @@ namespace PAG {
 
                     if (!m->tieneTextura()) {
 
-                        if (ImGui::Button("Cargar textura")) {
-
-                            // Obtener nombre del modelo
+                        if (ImGui::Button("Cargar textura color")) {
                             std::string nombre = m->nombre();
 
-                            // Quitar extensión ".obj"
                             size_t pos = nombre.find_last_of('.');
                             if (pos != std::string::npos)
                                 nombre = nombre.substr(0, pos);
 
-                            // Construir ruta: texturas/vaca.png
                             std::string rutaTex = "texturas/" + nombre + ".png";
 
                             try {
@@ -250,12 +246,37 @@ namespace PAG {
                                 );
                             }
                         }
-
                     } else {
-
                         bool usar = m->usaTextura();
                         if (ImGui::Checkbox("Usar textura", &usar)) {
                             m->setUsarTextura(usar);
+                        }
+                    }
+
+                    //  NORMAL MAPPING
+                    if (m->tieneMapaNormal()) {
+                        bool usarNM = m->getUsarNormalMap();
+                        // Este Checkbox es el que te permite activar/desactivar el efecto
+                        if (ImGui::Checkbox("Activar Normal Mapping", &usarNM)) {
+                            m->setUsarNormalMap(usarNM);
+                        }
+                    } else {
+                        ImGui::TextDisabled("No hay Normal Map cargado");
+                        //  Botón para intentar cargar manualmente si falló la carga automática
+                        if (ImGui::Button("Cargar Normal Map")) {
+
+                            std::string nombre = m->nombre();
+                            size_t pos = nombre.find_last_of('.');
+                            if (pos != std::string::npos) nombre = nombre.substr(0, pos);
+
+                            // Intentar cargar de la carpeta Normal/
+                            std::string rutaNorm = "Normal/" + nombre + "_normal.png";
+                            try {
+                                m->asignarMapaNormal(rutaNorm);
+                                m->setUsarNormalMap(true);
+                            } catch (...) {
+                                renderer.addMensaje("No se encontró: " + rutaNorm);
+                            }
                         }
                     }
 

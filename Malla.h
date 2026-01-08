@@ -20,6 +20,8 @@ struct Vertice {
     glm::vec3 pos;
     glm::vec3 normal;
     glm::vec2 texCoord; // texturas
+    glm::vec3 tangente;
+    glm::vec3 bitangente;
 };
 
 class Malla{

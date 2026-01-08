@@ -39,6 +39,9 @@ namespace PAG{
         std::unique_ptr<Textura> _textura;
         bool _usarTextura = false;
 
+        std::unique_ptr<Textura> _mapaNormal;
+        bool _usarNormalMapping = true;
+
     public:
         Modelo() = default;
         ~Modelo() = default;
@@ -49,20 +52,14 @@ namespace PAG{
         Modelo(Modelo&&) noexcept = default;
         Modelo& operator=(Modelo&&) noexcept = default;
 
-        /**
-        * Carga un archivo OBJ
-        */
+
         void loadOBJ(const std::string& path, bool smoothNormals);
 
-        /**
-         * Dibujar este modelo (todas sus mallas)
-         */
         void dibuja() const;
 
         // Matriz de modelado
         glm::mat4& modelaMatrix() { return modelo; }
         const glm::mat4& modelaMatrix() const { return modelo; }
-
         size_t cuentaTriang() const;
 
         // para el archivo
@@ -75,7 +72,6 @@ namespace PAG{
         void setWireframe(bool w) { wireframe = w; }
 
         Material& getMaterial() { return material; }
-        const Material& getMaterial() const { return material; }
 
 
         // Para la textura
@@ -83,9 +79,15 @@ namespace PAG{
 
         bool tieneTextura() const { return _textura != nullptr; }
         bool usaTextura() const { return _usarTextura && _textura; }
-
         void setUsarTextura(bool v) { _usarTextura = v; }
         const Textura& getTextura() const { return *_textura; }
+
+        //para el mapa de normales
+        void asignarMapaNormal(const std::string& ruta);
+
+        void setUsarNormalMap(bool v) { _usarNormalMapping = v; }
+        bool getUsarNormalMap() const { return _usarNormalMapping; }
+        bool tieneMapaNormal() const { return _mapaNormal != nullptr; }
     };
 }
 

@@ -58,17 +58,19 @@ void Malla::construir(const std::vector<Vertice>& vertices,
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned), indices.data(), GL_STATIC_DRAW);
 
-    // Atributo 0: Posición
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void*)offsetof(Vertice, pos));
     glEnableVertexAttribArray(0);
-
-    // Atributo 1: Normal
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void*)offsetof(Vertice, normal));
     glEnableVertexAttribArray(1);
-
-    // Atributo 2: Coordenadas de Textura
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void*)offsetof(Vertice, texCoord));
     glEnableVertexAttribArray(2);
+
+    // Atributo 3: Tangente
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void*)offsetof(Vertice, tangente));
+    glEnableVertexAttribArray(3);
+    // Atributo 4: Bitangente
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertice), (void*)offsetof(Vertice, bitangente));
+    glEnableVertexAttribArray(4);
 
     glBindVertexArray(0);
 }

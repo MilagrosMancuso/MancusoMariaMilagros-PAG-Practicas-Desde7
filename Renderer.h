@@ -68,6 +68,10 @@ namespace PAG {
         // Cantidad total de subrutinas activas en el shader
         GLint _numSubrutinasActivas = 0;
 
+        GLuint _fboSombras = 0;
+        GLuint _texSombra = 0;
+        GLuint _idSPSombras = 0; // Shader simple para sombras
+        const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
 
 
     public:
@@ -136,6 +140,9 @@ namespace PAG {
         void dibujaModelos(GLuint idxSubrutinaLuz);
 
         void fetchSubroutines();
+
+        //SHADOW MAPPING
+        void inicializaShadowMapping();
     };
 }
 

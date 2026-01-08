@@ -16,7 +16,6 @@ namespace PAG {
     Malla Modelo::procesaMalla(const aiMesh *mesh) {
         std::vector<Vertice> vertices;
         std::vector<unsigned> indices;
-
         vertices.reserve(mesh->mNumVertices);
 
         for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
@@ -37,17 +36,34 @@ namespace PAG {
                 v.normal = {0, 0, 1};
             }
 
-            // TEXTURAS
+            // Texturas
             if(mesh->HasTextureCoords(0)) {
                 v.texCoord = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
             } else {
                 v.texCoord = { 0.0f, 0.0f };
             }
 
+            // TANGENTES Y BITANGENTES
+            if (mesh->HasTangentsAndBitangents()) {
+                v.tangente = {
+                        mesh->mTangents[i].x,
+                        mesh->mTangents[i].y,
+                        mesh->mTangents[i].z
+                };
+                v.bitangente = {
+                        mesh->mBitangents[i].x,
+                        mesh->mBitangents[i].y,
+                        mesh->mBitangents[i].z
+                };
+            } else {
+                // por defecto por si falla el calculo
+                v.tangente = {1, 0, 0};
+                v.bitangente = {0, 1, 0};
+            }
+
             vertices.push_back(v);
         }
 
-        // Triángulos
         for (unsigned f = 0; f < mesh->mNumFaces; ++f) {
             const aiFace &face = mesh->mFaces[f];
             for (unsigned k = 0; k < face.mNumIndices; ++k)
@@ -66,8 +82,10 @@ namespace PAG {
     void Modelo::loadOBJ(const std::string &path, bool smoothNormals) {
         Assimp::Importer importer;
 
+        // Añadimos aiProcess_CalcTangentSpace para generar tangentes y bitangentes
         unsigned flags = aiProcess_JoinIdenticalVertices
                          | aiProcess_Triangulate
+                         | aiProcess_CalcTangentSpace
                          | (smoothNormals ? aiProcess_GenSmoothNormals : aiProcess_GenNormals);
 
         const aiScene *scene = importer.ReadFile(path, flags);
@@ -78,6 +96,7 @@ namespace PAG {
 
         _ruta = path;
         _nombre = fs::path(path).filename().string();
+        mallas.clear();
 
         // Recorremos todas las mallas del modelo
         std::vector<const aiNode *> stack{scene->mRootNode};
@@ -103,6 +122,32 @@ namespace PAG {
     {
         if (wireframe)
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+        if (usaTextura()) {
+            getTextura().activar(0);
+        }
+
+       /* if (_mapaNormal) {
+            _mapaNormal->activar(1);
+        }
+*/
+
+        int usarNM_Int = 0; // Valor para el shader
+        if (_mapaNormal) {
+            _mapaNormal->activar(1);
+            // Solo enviamos 1 si tenemos textura Y el flag está activo
+            if (_usarNormalMapping) usarNM_Int = 1;
+        }
+
+        // ENVIAR EL UNIFORM AL SHADER ACTIVO
+        GLint loc = -1;
+        // Buscamos el ID del programa actual
+        GLint prog = 0;
+        glGetIntegerv(GL_CURRENT_PROGRAM, &prog);
+        if (prog > 0) {
+            loc = glGetUniformLocation(prog, "uUsarNormalMap");
+            if (loc >= 0) glUniform1i(loc, usarNM_Int);
+        }
 
         for (const auto& m : mallas)
             m.dibuja();
@@ -131,5 +176,14 @@ namespace PAG {
         _textura = std::make_unique<Textura>();
         _textura->carga(ruta);
         _usarTextura = true;
+    }
+
+/**
+ * Asignar el mapa de normales a nuestro modelo
+ * @param ruta (ruta del mapa de normales)
+ */
+    void Modelo::asignarMapaNormal(const std::string& ruta) {
+        _mapaNormal = std::make_unique<Textura>();
+        _mapaNormal->carga(ruta);
     }
 }
