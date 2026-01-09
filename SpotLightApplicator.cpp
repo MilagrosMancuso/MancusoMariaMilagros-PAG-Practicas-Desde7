@@ -9,7 +9,7 @@ namespace PAG {
 
     void SpotLightApplicator::aplicaLuz(GLuint program, const LightProperties& p, const glm::mat4& V)
     {
-        GLuint index = glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "LuzSpot");
+        GLuint index = glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "luzFoco");
         glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &index);
 
         glm::vec3 posVS = glm::vec3(V * glm::vec4(p.posicion, 1.0));
@@ -28,6 +28,6 @@ namespace PAG {
 
     GLuint SpotLightApplicator::getSubroutineIndex(GLuint program) const
     {
-        return glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "LuzSpot");
+        return glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "luzFoco");
     }
 }

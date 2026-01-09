@@ -14,14 +14,16 @@ uniform sampler2D muestreadorNormal;
 uniform sampler2DShadow muestreadorSombra;
 
 // Uniform de control para activar/desactivar Normal Mapping
-uniform int uUsarNormalMap; // 1 = Activado, 0 = Desactivado
+uniform int uUsarNormalMap;
 
 uniform vec3 uKa, uKd, uKs;
 uniform float uShininess;
+
 uniform vec3 uLight_Id, uLight_Is, uLight_PosVS, uLight_DirVS;
 uniform vec3 uAmbiente_Ia;
 uniform float uSpot_cosGamma, uSpot_exp;
 
+//subrutinas
 subroutine vec4 elegirColor();
 subroutine uniform elegirColor uMetodoColor;
 
@@ -70,6 +72,7 @@ vec3 L = normalize(uLight_PosVS - entrada.vPosVS);
 vec3 D = normalize(uLight_DirVS);
 float cosTheta = dot(-L, D);
 if (cosTheta < uSpot_cosGamma) return vec4(0.0, 0.0, 0.0, 1.0);
+
 vec3 L_tg = normalize(entrada.vTBNinv * L);
 float s = textureProj(muestreadorSombra, entrada.vCoordenadasSombra);
 float atenuacion = pow(cosTheta, uSpot_exp);
@@ -78,20 +81,14 @@ return vec4(PhongTangente(N, L_tg, V, colorBase.rgb, s) * atenuacion, 1.0);
 
 void main() {
 vec3 N;
-
-// Lógica para activar/desactivar Normal Mapping
 if (uUsarNormalMap == 1) {
-// Leemos del mapa y transformamos de [0,1] a [-1,1]
 vec3 normalMapa = texture(muestreadorNormal, entrada.vTexCoord).rgb;
 N = normalize(normalMapa * 2.0 - 1.0);
 } else {
-// Si está desactivado, usamos la normal por defecto del espacio tangente (Z+)
 N = vec3(0.0, 0.0, 1.0);
 }
-
-// Vector de visión en espacio tangente
 vec3 V = normalize(entrada.vTBNinv * (-entrada.vPosVS));
-
 vec4 base = uMetodoColor();
 fragColor = uMetodoLuz(N, V, base);
+
 }

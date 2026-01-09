@@ -70,9 +70,12 @@ namespace PAG {
 
         GLuint _fboSombras = 0;
         GLuint _texSombra = 0;
-        GLuint _idSPSombras = 0; // Shader simple para sombras
+        GLuint _idSPSombras = 0;
         const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
 
+        // Inicialización de sombras interna
+        void inicializaShadowMapping();
+        void inicializaShaderSombras();
 
     public:
         static Renderer& getInstancia();
@@ -132,7 +135,6 @@ namespace PAG {
 
         // Crea una luz con una estrategia concreta. Devuelve índice.
         int addLuz(std::unique_ptr<LightApplicator> strat);
-
         // Elimina una luz por índice
         void removeLuz(int index);
 
@@ -141,8 +143,6 @@ namespace PAG {
 
         void fetchSubroutines();
 
-        //SHADOW MAPPING
-        void inicializaShadowMapping();
     };
 }
 

@@ -12,7 +12,7 @@ namespace PAG {
             const LightProperties& p,
             const glm::mat4& V)
     {
-        GLuint index = glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "LuzAmbiente");
+        GLuint index = glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "luzAmbiente");
         glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &index);
 
         // Enviar el color ambiente
@@ -23,7 +23,7 @@ namespace PAG {
 
     GLuint AmbientLightApplicator::getSubroutineIndex(GLuint program) const
     {
-        return glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "LuzAmbiente");
+        return glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "luzAmbiente");
     }
 
 }

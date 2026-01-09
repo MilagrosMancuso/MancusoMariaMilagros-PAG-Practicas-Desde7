@@ -9,7 +9,7 @@ namespace PAG {
     void PointLightApplicator::aplicaLuz(GLuint program, const LightProperties& p, const glm::mat4& V)
     {
         // Seleccionar subrutina "LuzPuntual"
-        GLuint index = glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "LuzPuntual");
+        GLuint index = glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "luzPuntual");
         glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &index);
 
         // Transformar posición a View Space
@@ -23,6 +23,6 @@ namespace PAG {
 
     GLuint PointLightApplicator::getSubroutineIndex(GLuint program) const
     {
-        return glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "LuzPuntual");
+        return glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "luzPuntual");
     }
 }

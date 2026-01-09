@@ -15,7 +15,7 @@ out salidaVS {
     vec2 vTexCoord;
     vec3 vPosVS;
     vec4 vCoordenadasSombra;
-    mat3 vTBNinv;
+    mat3 vTBNinv;// Matriz para pasar vectores de View - Tangent
 } salida;
 
 void main() {
@@ -34,7 +34,7 @@ void main() {
     vec3 B = normalize(normalMatrix * bitangente);
     vec3 N = normalize(normalMatrix * normal);
 
-    // Inversa de matriz ortonormal es su traspuesta
+    // Inversa de matriz ortonormal - traspuesta
     salida.vTBNinv = transpose(mat3(T, B, N));
 
     gl_Position = uProj * posVista;

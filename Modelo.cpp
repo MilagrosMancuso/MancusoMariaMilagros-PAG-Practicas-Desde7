@@ -127,10 +127,6 @@ namespace PAG {
             getTextura().activar(0);
         }
 
-       /* if (_mapaNormal) {
-            _mapaNormal->activar(1);
-        }
-*/
 
         int usarNM_Int = 0; // Valor para el shader
         if (_mapaNormal) {

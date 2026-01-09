@@ -88,6 +88,8 @@ namespace PAG{
         void setUsarNormalMap(bool v) { _usarNormalMapping = v; }
         bool getUsarNormalMap() const { return _usarNormalMapping; }
         bool tieneMapaNormal() const { return _mapaNormal != nullptr; }
+
+        const Textura& getMapaNormal() const { return *_mapaNormal; }
     };
 }
 

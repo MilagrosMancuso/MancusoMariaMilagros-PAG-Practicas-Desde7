@@ -187,8 +187,9 @@ namespace PAG {
         glClearColor(_colorBorrado[0], _colorBorrado[1], _colorBorrado[2], _colorBorrado[3]);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_MULTISAMPLE);
-
         glDepthFunc(GL_LEQUAL);      // para multipasada con blending
+
+        inicializaShadowMapping();
 
     }
 
@@ -206,8 +207,8 @@ namespace PAG {
     }
 
     void Renderer::creaShaderProgram() {
-        // por compatibilidad cargamos el shader por defecto "pag08"
-        loadShaderProgramFromBase("pag09");
+        // por compatibilidad cargamos el shader por defecto
+        loadShaderProgramFromBase("pag10");
     }
 
 
@@ -284,24 +285,13 @@ namespace PAG {
 
     void Renderer::fetchSubroutines() {
 
-       /* if (idSP == 0) return;
-
-        // Buscamos la variable uniforme de subrutina "uMetodoLuz"
-        locMetodoLuz = glGetSubroutineUniformLocation(idSP, GL_FRAGMENT_SHADER, "uMetodoLuz");
-
-        if (locMetodoLuz < 0) {
-            addMensaje("AVISO: No se encontró la subrutina uniforme 'uMetodoLuz' en el Fragment Shader.");
-        }
-*/
         if (idSP == 0) return;
 
-        //  EL TAMAÑO DEL VECTOR: cuántas subrutinas uniformes tiene el shader ( Luz y Color)
         GLint tam = 0;
         glGetProgramStageiv(idSP, GL_FRAGMENT_SHADER, GL_ACTIVE_SUBROUTINE_UNIFORMS, &tam);
         _numSubrutinasActivas = tam;
 
         // LOCALIZAR LOS UNIFORMS
-
         // Selector de Color
         locMetodoColor = glGetSubroutineUniformLocation(idSP, GL_FRAGMENT_SHADER, "uMetodoColor");
 
@@ -309,7 +299,7 @@ namespace PAG {
             addMensaje("Error: No se encontró el uniform de subrutina 'uMetodoColor'");
         }
 
-        // Selector de Luz
+        // Selec de Luz
         locMetodoLuz = glGetSubroutineUniformLocation(idSP, GL_FRAGMENT_SHADER, "uMetodoLuz");
 
         if (locMetodoLuz < 0) {
@@ -352,19 +342,18 @@ namespace PAG {
 
             //Asignacion de texturas. el requisito es que la textura se llame igual que el modelo, entonces no hay error al asignarlas
             try {
-                if (path.find("vaca") != std::string::npos) {
-                    m->asignarTextura("./texturas/vaca.png");
-                }
-                else if (path.find("t-rex") != std::string::npos) {
+                 if (path.find("t-rex") != std::string::npos) {
                     // Textura de Color
                     m->asignarTextura("./texturas/t-rex.png");
 
                     // Mapa de Normales
-                    m->asignarMapaNormal("./Normal/t-rex-gris_normal.png");
+                    m->asignarMapaNormal("./texturas/t-rex-gris_normal.png");
                 }
                 else if (path.find("dado") != std::string::npos) {
                     m->asignarTextura("./texturas/dado.png");
-                    m->asignarMapaNormal("./Normal/dieHeightMap_normal.png");
+                    m->asignarMapaNormal("./texturas/dieHeightMap_normal.png");
+                }else if (path.find("vaca") != std::string::npos){
+                     m->asignarTextura("./texturas/vaca.png");
                 }
             }catch (const std::exception& eTex) {
                 addMensaje(std::string("Error cargando textura: ") + eTex.what());
@@ -410,7 +399,6 @@ namespace PAG {
             if (!m) continue;
 
             //  MATRICES Y MATERIALES
-
             glUniformMatrix4fv(uModelLoc, 1, GL_FALSE, glm::value_ptr(m->modelaMatrix()));
 
             const Material& mat = m->getMaterial();
@@ -419,26 +407,27 @@ namespace PAG {
             glUniform3fv(glGetUniformLocation(idSP, "uKs"), 1, &mat.Ks[0]);
             glUniform1f (glGetUniformLocation(idSP, "uShininess"), mat.brillo);
 
-            //  CONFIGURACIÓN DE SUBRUTINAS
-            // LUZ: Usamos el que nos pasan por parámetro
-            configuracion[locMetodoLuz] = idxSubrutinaLuz;
-
-
-            // COLOR: Depende de si el modelo tiene textura
+            // Textura de COLOR
             if (m->usaTextura()) {
-                    // Si tiene textura, activamos la unidad 0 y elegimos la función de textura
-                    m->getTextura().activar(0);
-                    configuracion[locMetodoColor] = idxColorTextura;
+                m->getTextura().activar(0);
+                configuracion[locMetodoColor] = idxColorTextura;
             } else {
-                    // Si no, usamos el color sólido
-                    configuracion[locMetodoColor] = idxColorMaterial;
+                configuracion[locMetodoColor] = idxColorMaterial;
             }
 
+            // NORMAL MAPPING
+            int usarNM = 0;
+            if (m->tieneMapaNormal() && m->getUsarNormalMap()) {
+                m->getMapaNormal().activar(1);
+                usarNM = 1;
+            }
+            // Avisar al Fragment Shader si debe calcular relieve o no
+            glUniform1i(glGetUniformLocation(idSP, "uUsarNormalMap"), usarNM);
 
-            // ENVIAMOS AL SHADER
+
+            configuracion[locMetodoLuz] = idxSubrutinaLuz;
             glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, _numSubrutinasActivas, configuracion.data());
 
-            // DIBUJAR
             m->dibuja();
         }
     }
@@ -458,84 +447,49 @@ namespace PAG {
 
 
     void Renderer::refrescar() {
-      /*  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        if (idSP == 0) return;
-
-        glUseProgram(idSP);
-
-        // Matrices Globales
-        glm::mat4 view = cam.matrizVision();
-        glm::mat4 proj = cam.matrizProyeccion();
-        if (uViewLoc >= 0) glUniformMatrix4fv(uViewLoc, 1, GL_FALSE, glm::value_ptr(view));
-        if (uProjLoc >= 0) glUniformMatrix4fv(uProjLoc, 1, GL_FALSE, glm::value_ptr(proj));
-
-        // Textura: Aseguramos que el sampler use la unidad 0
-        glUniform1i(glGetUniformLocation(idSP, "muestreador"), 0);
-        // nuevo
-        glUniform1i(glGetUniformLocation(idSP, "muestreadorNormal"), 1); // Normales
-        glUniform1i(glGetUniformLocation(idSP, "muestreadorSombra"), 2); // Sombras
-
-        // NUEVO --- CÁLCULO DE MATRIZ DE SOMBRAS ---
-        // Por ahora, usamos una matriz identidad o una de prueba para que el shader no falle
-        glm::mat4 matSombras = glm::mat4(1.0);
-        glUniformMatrix4fv(glGetUniformLocation(idSP, "uMatrizSombras"), 1, GL_FALSE, glm::value_ptr(matSombras));
-
-
-        // PASADA 1 LUZ AMBIENTE (Base)
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDepthFunc(GL_LEQUAL);
-
-        // Calcular ambiente total
-        glm::vec3 ambienteTotal(0.0f);
-        bool hayLuces = false;
-        for(const auto& L : _luces) {
-            if(L.props.activa) {
-                ambienteTotal += L.props.Ia;
-                hayLuces = true;
-            }
-        }
-        if(!hayLuces) ambienteTotal = glm::vec3(0.2f);
-
-        glUniform3fv(glGetUniformLocation(idSP, "uAmbiente_Ia"), 1, glm::value_ptr(ambienteTotal));
-
-        // DIBUJAR CON SUBRUTINA AMBIENTE
-        dibujaModelos(idxLuzAmbiente);
-
-        // PASADA 2 LUCES ACTIVAS
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-
-        for (const Light& L : _luces) {
-            if (!L.props.activa) continue;
-            // L.aplica envía los uniforms de posición/color y nos devuelve QUÉ tipo de luz es
-            GLuint idxLuzActual = L.aplica(idSP, view);
-
-            // DIBUJAR CON LA SUBRUTINA DE ESTA LUZ ESPECÍFICA
-            dibujaModelos(idxLuzActual);
-        }
-
-        glDisable(GL_BLEND);
-        */
+       // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         if (idSP == 0) return;
 
         //  GENERAR MAPA DE SOMBRAS
-        glViewport(0, 0, 1024, 1024); // Tamaño del mapa de sombras
+        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, _fboSombras);
         glClear(GL_DEPTH_BUFFER_BIT);
 
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
         glEnable(GL_CULL_FACE);
-        glCullFace(GL_FRONT); // Para evitar el shadow acne
+        glCullFace(GL_FRONT);
 
         glm::mat4 lightSpaceMatrix(1.0f);
-        if (!_luces.empty()) {
-            // Usamos Foco o Direccional
-            const auto& L = _luces[0];
 
-            // Calculamos matrices de la cámara virtual de la luz
-            glm::mat4 lightView = glm::lookAt(L.props.posicion, L.props.posicion + L.props.direccion, glm::vec3(0,1,0));
-            glm::mat4 lightProj = glm::perspective(glm::radians(L.props.aperturaGrados * 2.0f), 1.0f, 0.1f, 50.0f);
+        // Buscar la primera luz que proyecte sombras
+        Light* luzSombra = nullptr;
+        for(auto& L : _luces) {
+            if (!L.props.activa) continue;
+
+            if (std::strcmp(L.nombreEstrategia(), "Foco") == 0 ||
+                std::strcmp(L.nombreEstrategia(), "Direccional") == 0) {
+                luzSombra = &L;
+                break;
+            }
+        }
+
+        if (luzSombra) {
+            glm::mat4 lightProj, lightView;
+
+            if (std::strcmp(luzSombra->nombreEstrategia(), "Direccional") == 0) {
+                lightProj = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 50.0f);
+
+                lightView = glm::lookAt(glm::vec3(5.0f) * (-luzSombra->props.direccion),
+                                        glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+            }
+            else {
+                lightProj = glm::perspective(glm::radians(luzSombra->props.aperturaGrados * 2.0f), 1.0f, 0.1f, 50.0f);
+                lightView = glm::lookAt(luzSombra->props.posicion,
+                                        luzSombra->props.posicion + luzSombra->props.direccion,
+                                        glm::vec3(0.0f, 1.0f, 0.0f));
+            }
+
             lightSpaceMatrix = lightProj * lightView;
 
             glUseProgram(_idSPSombras);
@@ -555,7 +509,7 @@ namespace PAG {
         // RENDERIZADO FINAL
         int anchoVP, altoVP;
         glfwGetFramebufferSize(glfwGetCurrentContext(), &anchoVP, &altoVP);
-        glViewport(0, 0, anchoVP, altoVP); // Restauramos viewport
+        glViewport(0, 0, anchoVP, altoVP);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glDepthFunc(GL_LEQUAL);
 
@@ -567,24 +521,26 @@ namespace PAG {
         if (uViewLoc >= 0) glUniformMatrix4fv(uViewLoc, 1, GL_FALSE, glm::value_ptr(view));
         if (uProjLoc >= 0) glUniformMatrix4fv(uProjLoc, 1, GL_FALSE, glm::value_ptr(proj));
 
-        // Configuración de Samplers
-        glUniform1i(glGetUniformLocation(idSP, "muestreador"), 0);       // Unidad 0: Color
-        glUniform1i(glGetUniformLocation(idSP, "muestreadorNormal"), 1); // Unidad 1: Normales
-        glUniform1i(glGetUniformLocation(idSP, "muestreadorSombra"), 2); // Unidad 2: Sombras
+        // Configurar Samplers
+        glUniform1i(glGetUniformLocation(idSP, "muestreador"), 0);
+        glUniform1i(glGetUniformLocation(idSP, "muestreadorNormal"), 1);
+        glUniform1i(glGetUniformLocation(idSP, "muestreadorSombra"), 2);
 
-        // Matriz de sombras escalada
+        // Enviar Matriz de Sombras
         glm::mat4 B = glm::translate(glm::mat4(1.0f), glm::vec3(0.5f));
         B = glm::scale(B, glm::vec3(0.5f));
         glm::mat4 matSombrasUniform = B * lightSpaceMatrix;
         glUniformMatrix4fv(glGetUniformLocation(idSP, "uMatrizSombras"), 1, GL_FALSE, glm::value_ptr(matSombrasUniform));
 
-        // Activamos la textura de sombras generada
+        // Activar textura de sombra
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, _texSombra);
 
-        // PASADA 1 LUZ AMBIENTE (Base)
+        //  DIBUJAR ILUMINACIÓN
+        // Ambiente
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthFunc(GL_LEQUAL);      // Dibujar sobre la misma superficie
 
         glm::vec3 ambienteTotal(0.0f);
         bool hayLucesActivas = false;
@@ -599,25 +555,27 @@ namespace PAG {
 
         dibujaModelos(idxLuzAmbiente);
 
-        // PASADA 2 LUCES ACTIVAS (Iluminación + Sombras)
+        //  Luces
         glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-
         for (const Light& L : _luces) {
             if (!L.props.activa) continue;
             GLuint idxLuzActual = L.aplica(idSP, view);
             dibujaModelos(idxLuzActual);
         }
-
-        glDisable(GL_BLEND);
+       // glDisable(GL_BLEND);
     }
 
 
 
     void Renderer::inicializaShadowMapping() {
-        // 1. Crear el FBO
+        if (_idSPSombras == 0) {
+            inicializaShaderSombras();
+        }
+
+        //  Crear el FBO
         glGenFramebuffers(1, &_fboSombras);
 
-        // 2. Crear textura de profundidad
+        //  Crear textura de profundidad
         glGenTextures(1, &_texSombra);
         glBindTexture(GL_TEXTURE_2D, _texSombra);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
@@ -629,14 +587,64 @@ namespace PAG {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
         glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
 
-        // 3. Vincular al FBO
+        // Comparación automática de profundidad en el shader
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LESS); // [cite: 232]
+
+        // Vincular al FBO
         glBindFramebuffer(GL_FRAMEBUFFER, _fboSombras);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _texSombra, 0);
         glDrawBuffer(GL_NONE);
         glReadBuffer(GL_NONE);
+
+        // Comprobar estado
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            addMensaje("ERROR: El FBO de sombras no está completo.");
+        }
+
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
+
+    void Renderer::inicializaShaderSombras() {
+        // Código fuente del Vertex Shader para Sombras
+        const char* vsSource =
+                "#version 410\n"
+                "layout (location = 0) in vec3 vertice;\n"
+                "uniform mat4 matrizModVisProy;\n"
+                "void main() {\n"
+                "    gl_Position = matrizModVisProy * vec4(vertice, 1.0);\n"
+                "}\n";
+
+        // Código fuente del Fragment Shader para Sombras
+        const char* fsSource =
+                "#version 410\n"
+                "void main() { }\n";
+
+        // Compilar VS
+        GLuint vs = glCreateShader(GL_VERTEX_SHADER);
+        glShaderSource(vs, 1, &vsSource, nullptr);
+        glCompileShader(vs);
+        checkCompilaError(vs, "VERTEX SOMBRAS");
+
+        // Compilar FS
+        GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+        glShaderSource(fs, 1, &fsSource, nullptr);
+        glCompileShader(fs);
+        checkCompilaError(fs, "FRAGMENT SOMBRAS");
+
+        // Link Programa
+        _idSPSombras = glCreateProgram();
+        glAttachShader(_idSPSombras, vs);
+        glAttachShader(_idSPSombras, fs);
+        glLinkProgram(_idSPSombras);
+        checkCompilaError(_idSPSombras, "PROGRAMA SOMBRAS");
+
+        // Limpiar shaders individuales
+        glDeleteShader(vs);
+        glDeleteShader(fs);
+
+        addMensaje("Shader de sombras creado correctamente (ID=" + std::to_string(_idSPSombras) + ")");
+    }
 }

@@ -8,7 +8,7 @@ namespace PAG {
 
     void DirectionalLightApplicator::aplicaLuz(GLuint program, const LightProperties& p, const glm::mat4& V)
     {
-        GLuint index = glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "LuzDireccional");
+        GLuint index = glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "luzDireccional");
         glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &index);
 
         // Transformar dirección (vector, w=0) a View Space
@@ -21,6 +21,6 @@ namespace PAG {
 
     GLuint DirectionalLightApplicator::getSubroutineIndex(GLuint program) const
     {
-        return glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "LuzDireccional");
+        return glGetSubroutineIndex(program, GL_FRAGMENT_SHADER, "luzDireccional");
     }
 }
