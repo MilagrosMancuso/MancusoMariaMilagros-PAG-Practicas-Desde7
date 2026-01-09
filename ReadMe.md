@@ -607,3 +607,83 @@ Se añadieron controles:
 
 
 ![Diagrama UML](/umlPAG9.png)
+
+
+# Practica 10: Normal Mapping y Sombras. 
+
+## Descripción 
+En esta práctica se ha aumentado el realismo de la escena implementando dos técnicas avanzadas:
+1.  **Normal Mapping**: Simulación de relieve en superficies planas mediante la perturbación de las normales usando una textura especial (mapa de normales).
+2.  **Shadow Mapping**: Generación de sombras proyectadas dinámicas mediante el algoritmo de dos pasadas (Shadow Pass + Render Pass).
+
+---
+
+## 1. Normal Mapping
+
+### Cambios en  (`Modelo` y `Malla`)
+Para que el Normal Mapping funcione, necesitamos trabajar en el **Espacio Tangente**.
+1.  **Carga de Tangentes y Bitangentes**:
+    En `Modelo::loadOBJ`, se añadió el flag `aiProcess_CalcTangentSpace`.
+2.  **Atributos de Vértice**:
+    La estructura `Vertice` y la clase `Malla` ahora gestionan dos nuevos atributos:
+    ```cpp
+    struct Vertice {
+        // ... pos, normal, texCoord ...
+        glm::vec3 tangente;
+        glm::vec3 bitangente;
+    };
+    ```
+    En `Malla::construir`, se habilitaron los atributos en las localizaciones 3 y 4 del VAO.
+
+3.  **Gestión de Texturas**:
+    Se modificó `Renderer::dibujaModelos` para gestionar multitextura:
+    * **Unidad 0**: Textura de Color (Difusa).
+    * **Unidad 1**: Mapa de Normales (`_mapaNormal`).
+    * Se envía un uniform booleano `uUsarNormalMap` para activar/desactivar el efecto desde GUI.
+
+### Cambios en Shaders (Espacio Tangente)
+* **Vertex Shader (`pag10-vs.glsl`)**: Calcula la **Matriz TBN Inversa** para transformar los vectores de luz y visión del espacio de vista al espacio tangente.
+    ```glsl
+    mat3 normalMatrix = transpose(inverse(mat3(matrizMV)));
+    vec3 T = normalize(normalMatrix * tangente);
+    vec3 B = normalize(normalMatrix * bitangente);
+    vec3 N = normalize(normalMatrix * normal);
+    salida.vTBNinv = transpose(mat3(T, B, N));
+    ```
+* **Fragment Shader (`pag10-fs.glsl`)**: Si el efecto está activo, decodifica la normal de la textura `[0,1]` al rango `[-1,1]`.
+    ```glsl
+    vec3 normalMapa = texture(muestreadorNormal, entrada.vTexCoord).rgb;
+    N = normalize(normalMapa * 2.0 - 1.0);
+    ```
+
+---
+
+## 2. Sombras Proyectadas (Shadow Mapping)
+
+Se implementó un algoritmo de **dos pasadas** para generar sombras dinámicas para luces Direccionales y Focos.
+
+### Pasada 1: Generación del Mapa de Sombras
+Se creó un FBO (`_fboSombras`) con una textura de profundidad adjunta (`_texSombra`).
+En `Renderer::refrescar()`:
+1.  Se configura el viewport al tamaño del mapa de sombras (1024x1024).
+2.  Se activa el FBO de sombras.
+3.  Se activa **`glCullFace(GL_FRONT)`** para solucionar el problema de sombras desconectadas.
+4.  Se renderiza la escena desde el punto de vista de la luz usando un Shader simplificado (`_idSPSombras`) que solo calcula la posición.
+
+### Pasada 2: Renderizado de la Escena
+1.  Se vuelve al FBO por defecto (0) y al viewport de la ventana.
+2.  Se calcula la **Matriz de Sombras** que transforma coordenadas de mundo a espacio de textura de la luz:
+    ```cpp
+    glm::mat4 matSombrasUniform = B * lightSpaceMatrix; 
+    ```
+3.  Se activa la textura de sombras en la **Unidad 2**.
+
+### Cambios en Shaders
+* **Sampler de Sombra**: Se usa `sampler2DShadow` en el fragment shader.
+* **Proyección**: La función `textureProj` realiza la comparación de profundidad automáticamente para determinar si un fragmento está en sombra o luz.
+    ```glsl
+    float s = textureProj(muestreadorSombra, entrada.vCoordenadasSombra);
+    return vec4(PhongTangente(N, L_tg, V, colorBase.rgb, s, atenuacion), 1.0);
+    ```
+
+---
